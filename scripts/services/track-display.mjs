@@ -73,11 +73,12 @@ export function getSearchBlob(track) {
 }
 
 /**
+ * Single-line label: title, then artist after a dash when artist is known.
  * @param {import('../data/schemas.mjs').MusicTrack} track
  */
 export function getDisplayLine(track) {
   const artist = getTrackArtist(track)
   const title = getTrackTitle(track)
-  if (artist) return `${artist} — ${title}`
+  if (artist) return `${title} - ${artist}`
   return title
 }

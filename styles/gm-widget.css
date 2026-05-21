@@ -58,6 +58,148 @@ body.theme-light .application.fml-gm-widget {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
+.fml-widget--expanded .fml-widget-body {
+  display: flex;
+  gap: 0;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.fml-widget--expanded .fml-widget-main {
+  flex: 1 1 200px;
+  min-width: 0;
+  max-width: 280px;
+  padding-right: 0.5rem;
+}
+
+.fml-widget--expanded .fml-widget-tracks {
+  flex: 1 1 160px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--fml-border-divider);
+  padding-left: 0.45rem;
+  min-height: 0;
+}
+
+.fml-widget-tracks-title {
+  font-size: var(--font-size-11);
+  font-weight: 600;
+  opacity: 0.85;
+  margin-bottom: 0.25rem;
+  flex: 0 0 auto;
+}
+
+.fml-widget-tracks-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.4rem 0.2rem;
+  font-size: var(--font-size-10);
+  font-weight: 600;
+  opacity: 0.65;
+  flex: 0 0 auto;
+}
+
+.fml-widget-tracks-col-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fml-widget-tracks-col-duration {
+  flex: 0 0 2.5rem;
+  text-align: right;
+}
+
+.fml-widget-track-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 220px;
+}
+
+.fml-widget-track-list li + li {
+  margin-top: 0.1rem;
+}
+
+.fml-widget-track-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  padding: 0.32rem 0.4rem;
+  font-size: var(--font-size-12);
+  cursor: pointer;
+  overflow: hidden;
+  transition: background-color 0.2s ease;
+}
+
+.fml-widget-track-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.fml-widget-track-title-scroll {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.fml-widget-track-btn:not(.is-playing.is-marquee) .fml-widget-track-title-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fml-widget-track-btn.is-playing.is-marquee .fml-widget-track-title-scroll {
+  animation: fml-widget-track-marquee var(--marquee-duration, 12s) ease-in-out infinite alternate;
+}
+
+@keyframes fml-widget-track-marquee {
+  0%,
+  18% {
+    transform: translateX(0);
+  }
+  82%,
+  100% {
+    transform: translateX(calc(-1 * var(--marquee-distance, 0px)));
+  }
+}
+
+.fml-widget-track-duration {
+  flex: 0 0 2.5rem;
+  text-align: right;
+  font-size: var(--font-size-11);
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fml-widget-track-btn.is-playing .fml-widget-track-title-text {
+  font-weight: 600;
+}
+
+.fml-widget-track-btn:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 9%, transparent);
+}
+
+.fml-widget-track-btn.is-playing {
+  background-color: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 12%, transparent);
+}
+
+.fml-widget-track-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .fml-widget-header {
   display: flex;
   align-items: center;

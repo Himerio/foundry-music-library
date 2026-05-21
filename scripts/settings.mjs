@@ -57,7 +57,7 @@ export function registerSettings() {
     scope: 'client',
     config: false,
     type: Object,
-    default: { top: 48, left: 48, width: 320 }
+    default: { top: 48, left: 48, width: 520, compactWidth: 240 }
   })
 
   game.settings.register(MODULE_ID, SETTING_KEYS.SORT_BY, {

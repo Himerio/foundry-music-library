@@ -106,6 +106,9 @@
       "Hide": "Hide Player",
       "Compact": "Compact mode",
       "Expand": "Expanded mode",
+      "TrackList": "Tracks",
+      "PlayTrack": "Play this track",
+      "TrackNotAvailable": "Track is not available in the synced Foundry playlist.",
       "PlaylistNotSynced": "Could not find or sync the Foundry playlist. Open Music Library and ensure the playlist has tracks."
     },
     "Import": {

@@ -3,6 +3,13 @@ import {
   MODULE_ID
 } from '../constants.mjs'
 import { getSyncPrefix } from './foundry-sync.mjs'
+import { toFoundryMediaPath } from './paths.mjs'
+
+/** @param {foundry.documents.Playlist | null} playlist */
+export function getPlaylistSoundList(playlist) {
+  if (!playlist?.sounds) return []
+  return playlist.sounds.contents ?? [...playlist.sounds]
+}
 
 /**
  * @param {string} [excludeModulePlaylistId] Module playlist id to leave untouched
@@ -18,7 +25,7 @@ export async function stopAllModulePlaylists(excludeModulePlaylistId = null) {
     if (excludeModulePlaylistId && modulePlaylistId === excludeModulePlaylistId) continue
 
     const isActive = playlist.playing
-      || [...playlist.sounds].some((s) => s.playing)
+      || getPlaylistSoundList(playlist).some((s) => s.playing)
     if (isActive) stops.push(playlist.stopAll())
   }
   if (stops.length) await Promise.all(stops)
@@ -56,6 +63,31 @@ export function getPlaylistVolume(playlist) {
  * @param {foundry.documents.Playlist} playlist
  * @param {number} volume
  */
+/**
+ * @param {foundry.documents.Playlist} playlist
+ * @param {string} trackPath
+ * @returns {foundry.documents.PlaylistSound | null}
+ */
+export function findSoundByTrackPath(playlist, trackPath) {
+  if (!playlist || !trackPath) return null
+  const media = toFoundryMediaPath(trackPath)
+  return getPlaylistSoundList(playlist).find(
+    (s) => toFoundryMediaPath(s.path ?? '') === media
+  ) ?? null
+}
+
+/**
+ * @param {foundry.documents.Playlist} playlist
+ * @param {foundry.documents.PlaylistSound} sound
+ * @param {string} [excludeModulePlaylistId]
+ */
+export async function playPlaylistSound(playlist, sound, excludeModulePlaylistId = null) {
+  if (!playlist || !sound) return false
+  await stopAllModulePlaylists(excludeModulePlaylistId)
+  await playlist.playSound(sound)
+  return true
+}
+
 export async function setPlaylistVolume(playlist, volume) {
   const sounds = playlist?.sounds?.contents ?? []
   if (!sounds.length) return

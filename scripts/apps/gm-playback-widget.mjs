@@ -3,18 +3,22 @@ import { canUseGmWidget } from '../utils/permissions.mjs'
 import * as playlistStore from '../services/playlist-store.mjs'
 import { getFoundryPlaylistForModule, syncModulePlaylistToFoundry } from '../services/foundry-sync.mjs'
 import {
+  findSoundByTrackPath,
   getNextPlaylistMode,
+  getPlaylistSoundList,
   getPlaylistVolume,
   isPlaylistShuffle,
+  playPlaylistSound,
   setPlaylistVolume,
   stopAllModulePlaylists
 } from '../services/playback-control.mjs'
-import { getDisplayLine, stripFoundrySortPrefix } from '../services/track-display.mjs'
+import { formatDuration, getDisplayLine, stripFoundrySortPrefix } from '../services/track-display.mjs'
 import { getTrack } from '../services/index-service.mjs'
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 
-const WIDGET_WIDTH_FULL = 320
+const WIDGET_WIDTH_FULL = 520
+const WIDGET_WIDTH_FULL_MIN = 480
 const WIDGET_WIDTH_COMPACT = 240
 const COMPACT_IDLE_MS = 2000
 
@@ -36,7 +40,7 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
       frame: true,
       positioned: true
     },
-    position: { width: 320 }
+    position: { width: WIDGET_WIDTH_FULL }
   }
 
   static PARTS = {
@@ -55,7 +59,8 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     const prefs = game.settings.get(MODULE_ID, SETTING_KEYS.WIDGET_UI) ?? {}
     const app = new GmPlaybackWidget()
     game.settings.set(MODULE_ID, SETTING_KEYS.WIDGET_VISIBLE, true)
-    const width = prefs.compact ? (prefs.compactWidth ?? WIDGET_WIDTH_COMPACT) : (prefs.width ?? WIDGET_WIDTH_FULL)
+    let width = prefs.compact ? (prefs.compactWidth ?? WIDGET_WIDTH_COMPACT) : (prefs.width ?? WIDGET_WIDTH_FULL)
+    if (!prefs.compact && width < WIDGET_WIDTH_FULL_MIN) width = WIDGET_WIDTH_FULL
     const position = { width }
     if (Number.isFinite(prefs.top)) position.top = prefs.top
     if (Number.isFinite(prefs.left)) position.left = prefs.left
@@ -67,12 +72,21 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     const playlists = playlistStore.getPlaylists()
     await this._ensureActivePlaylistSetting()
     const activeId = this._getActiveModulePlaylistId()
+    const widgetUi = game.settings.get(MODULE_ID, SETTING_KEYS.WIDGET_UI) ?? {}
+    const compact = Boolean(widgetUi.compact)
 
-    const foundryPl = activeId ? getFoundryPlaylistForModule(activeId) : null
+    let foundryPl = activeId ? getFoundryPlaylistForModule(activeId) : null
+    const modulePl = activeId ? playlistStore.getPlaylistById(activeId) : null
+    if (!compact && modulePl?.trackPaths?.length) {
+      try {
+        foundryPl = await syncModulePlaylistToFoundry(modulePl)
+      } catch (e) {
+        console.error('FML | Widget playlist sync failed', e)
+      }
+    }
     const playingSound = this._getPlayingSound(foundryPl)
     let nowPlaying = game.i18n.localize('FML.Widget.NothingPlaying')
     if (playingSound) {
-      const modulePl = playlistStore.getPlaylistById(activeId)
       const trackPath = modulePl?.trackPaths?.find((p) => {
         const media = p.replace(/^\//, '')
         return playingSound.path?.replace(/^\//, '') === media
@@ -85,13 +99,14 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
 
     const isPlaying = Boolean(playingSound)
     const shuffle = isPlaylistShuffle(foundryPl)
-    const widgetUi = game.settings.get(MODULE_ID, SETTING_KEYS.WIDGET_UI) ?? {}
-    const compact = Boolean(widgetUi.compact)
+    const playlistTracks = this._buildPlaylistTracks(activeId, foundryPl, playingSound, compact)
 
     return {
       playlists,
       activePlaylistId: activeId,
       nowPlaying,
+      playlistTracks,
+      showTrackList: !compact && playlistTracks.length > 0,
       compact,
       compactIcon: compact ? 'fa-up-right-and-down-left-from-center' : 'fa-down-left-and-up-right-to-center',
       compactLabel: compact
@@ -121,6 +136,49 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     this._widgetFramed = !compact
     this.element?.classList.toggle('fml-gm-widget--compact', compact)
     this._syncCompactChrome(compact)
+    if (!compact) {
+      this._ensureFullWidthLayout()
+      requestAnimationFrame(() => {
+        if (!this.rendered) return
+        this._syncTrackMarquees()
+        this._ensureTrackMarqueeObserver()
+      })
+    }
+  }
+
+  _syncTrackMarquees() {
+    const list = this.element?.querySelector('.fml-widget-track-list')
+    if (!list) return
+
+    for (const btn of list.querySelectorAll('.fml-widget-track-btn')) {
+      const clip = btn.querySelector('.fml-widget-track-title')
+      const textEl = btn.querySelector('.fml-widget-track-title-text')
+      if (!clip || !textEl) continue
+
+      btn.classList.remove('is-marquee')
+      btn.style.removeProperty('--marquee-distance')
+      btn.style.removeProperty('--marquee-duration')
+
+      if (!btn.classList.contains('is-playing')) continue
+
+      const distance = textEl.scrollWidth - clip.clientWidth
+      if (distance <= 2) continue
+
+      btn.classList.add('is-marquee')
+      btn.style.setProperty('--marquee-distance', `${distance}px`)
+      btn.style.setProperty('--marquee-duration', `${Math.max(10, 6 + distance / 10)}s`)
+    }
+  }
+
+  _ensureTrackMarqueeObserver() {
+    const list = this.element?.querySelector('.fml-widget-track-list')
+    if (!list || typeof ResizeObserver === 'undefined') return
+
+    if (this._trackMarqueeObservedList === list) return
+    this._trackMarqueeObserver?.disconnect()
+    this._trackMarqueeObservedList = list
+    this._trackMarqueeObserver = new ResizeObserver(() => this._syncTrackMarquees())
+    this._trackMarqueeObserver.observe(list)
   }
 
   _getUiFadeConfig() {
@@ -228,6 +286,9 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
         case 'toggleCompact':
           this._onToggleCompact()
           break
+        case 'playTrack':
+          this._onPlayTrack(button)
+          break
         default:
           break
       }
@@ -322,13 +383,29 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   _getPlaylistSounds(playlist) {
-    if (!playlist?.sounds) return []
-    return [...playlist.sounds]
+    return getPlaylistSoundList(playlist)
   }
 
   _getPlayingSound(playlist) {
-    if (!playlist?.sounds?.find) return null
-    return playlist.sounds.find((s) => s.playing) ?? null
+    return getPlaylistSoundList(playlist).find((s) => s.playing) ?? null
+  }
+
+  _buildPlaylistTracks(activeId, foundryPl, playingSound, compact) {
+    if (compact || !activeId) return []
+    const modulePl = playlistStore.getPlaylistById(activeId)
+    if (!modulePl?.trackPaths?.length) return []
+
+    const playingId = playingSound?.id ?? null
+    return modulePl.trackPaths.map((path) => {
+      const track = getTrack(path)
+      const sound = foundryPl ? findSoundByTrackPath(foundryPl, path) : null
+      return {
+        path,
+        display: track ? getDisplayLine(track) : path,
+        duration: track ? formatDuration(track.detected?.duration) : '—',
+        playing: Boolean(sound && playingId && sound.id === playingId)
+      }
+    })
   }
 
   async _onPlaylistSelect(select) {
@@ -392,6 +469,30 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     await this.render(false)
   }
 
+  async _onPlayTrack(button) {
+    const trackPath = button.dataset.trackPath
+    if (!trackPath) return
+    const pl = await this._getActiveFoundryPlaylist()
+    if (!pl) {
+      this._warnNoPlaybackPlaylist()
+      return
+    }
+    const sound = findSoundByTrackPath(pl, trackPath)
+    if (!sound) {
+      ui.notifications.warn(game.i18n.localize('FML.Widget.TrackNotAvailable'))
+      return
+    }
+    const moduleId = this._getActiveModulePlaylistId()
+    try {
+      await playPlaylistSound(pl, sound, moduleId)
+    } catch (e) {
+      console.error('FML | Play track failed', e)
+      ui.notifications.error(game.i18n.localize('FML.Common.Error'))
+      return
+    }
+    await this.render(false)
+  }
+
   async _onToggleMode() {
     const pl = await this._getActiveFoundryPlaylist()
     if (!pl) {
@@ -422,9 +523,22 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     }
   }
 
+  _ensureFullWidthLayout() {
+    const w = Number(this.position?.width) || 0
+    if (w >= WIDGET_WIDTH_FULL_MIN) return
+    const position = { ...this.position, width: WIDGET_WIDTH_FULL }
+    if (typeof this.setPosition === 'function') this.setPosition(position)
+    const prefs = game.settings.get(MODULE_ID, SETTING_KEYS.WIDGET_UI) ?? {}
+    if (!prefs.compact && (Number(prefs.width) || 0) < WIDGET_WIDTH_FULL_MIN) {
+      game.settings.set(MODULE_ID, SETTING_KEYS.WIDGET_UI, { ...prefs, width: WIDGET_WIDTH_FULL }).catch(
+        (e) => console.error('FML | Widget width save failed', e)
+      )
+    }
+  }
+
   _resolveWidgetWidths(prefs = {}) {
     let fullWidth = Number(prefs.width) || WIDGET_WIDTH_FULL
-    if (fullWidth < WIDGET_WIDTH_COMPACT + 40) fullWidth = WIDGET_WIDTH_FULL
+    if (fullWidth < WIDGET_WIDTH_FULL_MIN) fullWidth = WIDGET_WIDTH_FULL
     const compactWidth = Number(prefs.compactWidth) || WIDGET_WIDTH_COMPACT
     return { fullWidth, compactWidth }
   }
@@ -480,9 +594,10 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     const nextCompact = !prefs.compact
     const { fullWidth, compactWidth } = this._resolveWidgetWidths(prefs)
 
-    const storedFullWidth = nextCompact && this.position?.width >= WIDGET_WIDTH_COMPACT + 40
+    let storedFullWidth = nextCompact && this.position?.width >= WIDGET_WIDTH_COMPACT + 40
       ? this.position.width
       : fullWidth
+    if (!nextCompact && storedFullWidth < WIDGET_WIDTH_FULL_MIN) storedFullWidth = WIDGET_WIDTH_FULL
 
     await game.settings.set(MODULE_ID, SETTING_KEYS.WIDGET_UI, {
       ...prefs,
@@ -496,6 +611,9 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   async close(options = {}) {
+    this._trackMarqueeObserver?.disconnect()
+    this._trackMarqueeObserver = null
+    this._trackMarqueeObservedList = null
     this._clearCompactIdleFade()
     clearTimeout(this._persistWidgetPositionTimer)
     await this._persistWidgetPosition()
