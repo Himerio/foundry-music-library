@@ -1,0 +1,18 @@
+<div class="fml-virtual-spacer" style="height: {{virtualHeight}}px"></div>
+<div class="fml-virtual-window" style="transform: translateY({{virtualOffset}}px)">
+  {{#each visibleTracks}}
+  <div class="fml-track-row{{#if previewing}} fml-track-row--previewing{{/if}}{{#if missing}} missing{{/if}}" data-path="{{path}}" data-context-menu="track">
+    <button type="button" class="fml-favorite-btn {{#if favorite}}active{{/if}}" data-action="toggleFavorite" data-path="{{path}}" title="{{localize "FML.Library.ToggleFavorite"}}"><i class="fa-solid fa-star"></i></button>
+    <span class="title">{{title}}</span>
+    <span class="artist">{{artist}}</span>
+    <span class="duration">{{duration}}</span>
+    <span class="row-actions">
+      <button type="button" class="fml-preview-btn{{#if previewing}} active{{/if}}" data-action="togglePreview" data-path="{{path}}" title="{{#if previewing}}{{localize "FML.Track.TogglePreviewStop"}}{{else}}{{localize "FML.Track.TogglePreview"}}{{/if}}"><i class="fa-solid {{#if previewing}}fa-stop{{else}}fa-play{{/if}}"></i></button>
+      {{#if ../showAddToPlaylist}}
+      <button type="button" data-action="addToPlaylist" data-path="{{path}}" title="{{localize "FML.Track.AddToPlaylist"}}"><i class="fa-solid fa-plus"></i></button>
+      {{/if}}
+      <button type="button" data-action="editMetadata" data-path="{{path}}" title="{{localize "FML.Track.EditMetadata"}}"><i class="fa-solid fa-pen"></i></button>
+    </span>
+  </div>
+  {{/each}}
+</div>

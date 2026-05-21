@@ -36,15 +36,22 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._filterRenderTimer = null
     this._filterPersistTimer = null
     this._trackScroller = null
+    this._virtualTrackList = []
+    this._lastVirtualStartIdx = -1
+    this._virtualScrollRaf = null
     this._previewPath = null
     this._previewAudio = null
     this._onTrackScroll = () => {
       const scroller = this._trackScroller
-      if (!scroller) return
-      const top = scroller.scrollTop
-      if (top === this.scrollTop) return
-      this.scrollTop = top
-      this.render(false)
+      if (!scroller || !this._virtualTrackList.length) return
+      this.scrollTop = scroller.scrollTop
+      const startIdx = this._getVirtualStartIdx(this.scrollTop)
+      if (startIdx === this._lastVirtualStartIdx) return
+      if (this._virtualScrollRaf) cancelAnimationFrame(this._virtualScrollRaf)
+      this._virtualScrollRaf = requestAnimationFrame(() => {
+        this._virtualScrollRaf = null
+        this._patchVirtualScroll().catch((e) => console.error('FML | Virtual scroll update failed', e))
+      })
     }
   }
 
@@ -140,21 +147,17 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       })
       : []
 
-    const viewportRows = Math.ceil((this.element?.querySelector('.fml-virtual-scroll')?.clientHeight ?? 400) / ROW_HEIGHT_PX) + VIRTUAL_OVERSCAN * 2
-    const startIdx = Math.max(0, Math.floor(this.scrollTop / ROW_HEIGHT_PX) - VIRTUAL_OVERSCAN)
-    const endIdx = Math.min(allTracks.length, startIdx + viewportRows)
-    const slice = allTracks.slice(startIdx, endIdx)
+    this._virtualTrackList = allTracks
+    const scrollerEl = this._trackScroller ?? this.element?.querySelector('.fml-virtual-scroll')
+    const virtual = this._computeVirtualWindow(
+      allTracks,
+      this.scrollTop,
+      scrollerEl?.clientHeight
+    )
+    const { visibleTracks, startIdx } = virtual
+    this._lastVirtualStartIdx = startIdx
 
     const previewPath = this._previewPath
-    const visibleTracks = slice.map((t) => ({
-      path: t.path,
-      artist: getTrackArtist(t),
-      title: getTrackTitle(t),
-      duration: formatDuration(t.detected?.duration),
-      missing: t.missing,
-      favorite: favoriteStore.isFavorite(t.path),
-      previewing: previewPath === t.path
-    }))
 
     const previewEntry = previewPath ? index[previewPath] : null
     const previewTrack = previewPath
@@ -194,8 +197,8 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       missingCount,
       missingBanner: game.i18n.format('FML.Library.MissingTracks', { count: missingCount }),
       visibleTracks,
-      virtualHeight: allTracks.length * ROW_HEIGHT_PX,
-      virtualOffset: startIdx * ROW_HEIGHT_PX,
+      virtualHeight: virtual.virtualHeight,
+      virtualOffset: virtual.virtualOffset,
       activeTags,
       favoritesOnly,
       tagChips,
@@ -213,6 +216,72 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._bindSortSelect()
     this._bindFilterInput()
     this._bindVirtualScroll()
+    this._syncScrollerScrollTop()
+  }
+
+  _getVirtualStartIdx(scrollTop) {
+    return Math.max(0, Math.floor(scrollTop / ROW_HEIGHT_PX) - VIRTUAL_OVERSCAN)
+  }
+
+  _computeVirtualWindow(tracks, scrollTop, clientHeight) {
+    const list = tracks ?? []
+    const viewportRows = Math.ceil((clientHeight ?? 400) / ROW_HEIGHT_PX) + VIRTUAL_OVERSCAN * 2
+    const startIdx = this._getVirtualStartIdx(scrollTop)
+    const endIdx = Math.min(list.length, startIdx + viewportRows)
+    const previewPath = this._previewPath
+
+    const visibleTracks = list.slice(startIdx, endIdx).map((t) => ({
+      path: t.path,
+      artist: getTrackArtist(t),
+      title: getTrackTitle(t),
+      duration: formatDuration(t.detected?.duration),
+      missing: t.missing,
+      favorite: favoriteStore.isFavorite(t.path),
+      previewing: previewPath === t.path
+    }))
+
+    return {
+      startIdx,
+      visibleTracks,
+      virtualHeight: list.length * ROW_HEIGHT_PX,
+      virtualOffset: startIdx * ROW_HEIGHT_PX
+    }
+  }
+
+  async _patchVirtualScroll() {
+    const scroller = this._trackScroller
+    if (!scroller || !this._virtualTrackList.length) return
+
+    const scrollTop = scroller.scrollTop
+    this.scrollTop = scrollTop
+    const virtual = this._computeVirtualWindow(
+      this._virtualTrackList,
+      scrollTop,
+      scroller.clientHeight
+    )
+    if (virtual.startIdx === this._lastVirtualStartIdx) return
+    this._lastVirtualStartIdx = virtual.startIdx
+
+    const html = await foundry.applications.handlebars.renderTemplate(
+      `${MODULE_PATH}/templates/virtual-track-list-inner.hbs`,
+      {
+        ...virtual,
+        showAddToPlaylist: Boolean(this.selectedPlaylistId)
+      }
+    )
+    scroller.innerHTML = html
+    scroller.scrollTop = scrollTop
+  }
+
+  _syncScrollerScrollTop() {
+    const scroller = this._trackScroller ?? this.element?.querySelector('.fml-virtual-scroll')
+    if (!scroller) return
+    if (scroller.scrollTop !== this.scrollTop) scroller.scrollTop = this.scrollTop
+    this._trackScroller = scroller
+  }
+
+  _resetVirtualScrollAnchor() {
+    this._lastVirtualStartIdx = -1
   }
 
   _bindVirtualScroll() {
@@ -234,6 +303,8 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._stopPreview({ render: false })
     clearTimeout(this._filterRenderTimer)
     clearTimeout(this._filterPersistTimer)
+    if (this._virtualScrollRaf) cancelAnimationFrame(this._virtualScrollRaf)
+    this._virtualScrollRaf = null
     this._unbindVirtualScroll()
     if (this._filterQuery !== undefined) {
       const stored = game.settings.get(MODULE_ID, SETTING_KEYS.FILTER_QUERY) ?? ''
@@ -515,6 +586,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!value) return
       await game.settings.set(MODULE_ID, SETTING_KEYS.SORT_BY, value)
       this.scrollTop = 0
+      this._lastVirtualStartIdx = -1
       await this.render(false)
     })
   }
@@ -528,6 +600,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (value === this._filterQuery) return
       this._filterQuery = value
       this.scrollTop = 0
+      this._lastVirtualStartIdx = -1
       await this.render(false)
       this._restoreFilterFocus(selection)
     }
@@ -668,12 +741,14 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     else active.push(tag)
     await game.settings.set(MODULE_ID, SETTING_KEYS.ACTIVE_TAGS, active)
     this.scrollTop = 0
+    this._resetVirtualScrollAnchor()
     await this.render(false)
   }
 
   static async onClearTagFilter() {
     await game.settings.set(MODULE_ID, SETTING_KEYS.ACTIVE_TAGS, [])
     this.scrollTop = 0
+    this._resetVirtualScrollAnchor()
     await this.render(false)
   }
 
@@ -681,6 +756,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const cur = game.settings.get(MODULE_ID, SETTING_KEYS.FAVORITES_ONLY) ?? false
     await game.settings.set(MODULE_ID, SETTING_KEYS.FAVORITES_ONLY, !cur)
     this.scrollTop = 0
+    this._resetVirtualScrollAnchor()
     await this.render(false)
   }
 
