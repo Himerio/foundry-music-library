@@ -2,7 +2,7 @@
   "id": "foundry-music-library",
   "title": "Foundry Music Library",
   "description": "Modern music library and playlist management UI on top of Foundry native audio.",
-  "version": "0.2.1.1",
+  "version": "0.2.2",
   "authors": [
     {
       "name": "Himerio",
