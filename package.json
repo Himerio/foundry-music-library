@@ -4,7 +4,8 @@
   "private": true,
   "description": "Music library UI layer for Foundry VTT v13.",
   "scripts": {
-    "lint": "eslint . --ext .js,.mjs"
+    "lint": "eslint . --ext .js,.mjs",
+    "release:zip": "node scripts/build-release.mjs"
   },
   "devDependencies": {
     "eslint": "^8.57.1",

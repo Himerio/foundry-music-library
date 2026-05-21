@@ -9,10 +9,26 @@ System-agnostic Foundry VTT v13 module: a modern music library and playlist UI o
 
 ## Installation
 
+### Manifest URL (recommended)
+
+In Foundry: **Settings → Add-on Modules → Install Module**, paste:
+
+```text
+https://github.com/Himerio/foundry-music-library/releases/latest/download/module.json
+```
+
+Enable the module in your world (no specific game system required).
+
+### Manual
+
 1. Copy this folder to `Data/modules/foundry-music-library`
-2. Enable the module in your world (no specific game system required)
+2. Enable the module in your world
 3. Configure **Music Root Folder** in module settings or via **Configure Music Library**
-4. Add MP3 files to that folder and click **Scan**, or use **Upload** / drag-and-drop MP3s into the library window
+
+## First use
+
+1. Add MP3 files to your music folder and click **Scan**, or use **Upload** / drag-and-drop MP3s onto the library track list
+2. Create playlists and sync to Foundry `[Music]` playlists
 
 ## Usage
 
@@ -22,10 +38,11 @@ System-agnostic Foundry VTT v13 module: a modern music library and playlist UI o
 
 ### Music Library (v0.2)
 
-- **Upload** toolbar button or drag MP3 files onto the library window (duplicates skipped)
+- **Upload** toolbar button or drag MP3 files onto the library window (duplicates skipped); the track list panel highlights while dragging
 - **Playlist order**: drag tracks in the playlist panel (grip handle); syncs to Foundry
 - **Tag chips** in the sidebar filter the track list (tags from metadata editor)
 - **Favorites** (per-user): star on tracks; **Favorites** filter in the sidebar
+- **Play Preview** from the track context menu (with stop control and row highlight)
 
 ### Music Player controls
 
@@ -35,11 +52,11 @@ System-agnostic Foundry VTT v13 module: a modern music library and playlist UI o
 | Previous / Next | Skip backward or forward in the playlist |
 | Play / Stop | **Play** starts the playlist (other module playlists stop first). While playing, the same control becomes **Stop** (full stop, not pause) |
 | Mode (⇅ / 🔀) | Toggle **Sequential** vs **Shuffle** on the Foundry playlist |
-| Volume | Adjusts volume for all tracks in the active playlist |
-| Compact | Toggle minimal player layout (client setting) |
+| Volume | Adjusts volume for all tracks in the active playlist (full mode) |
+| Compact | Frameless minimal player; position and layout are remembered |
 | × (Hide) | Close the player; position is remembered |
 
-**Now playing** uses your library metadata (title) when available. See `spec.md` §7 for full behavior.
+**Now playing** uses your library metadata (title) when available.
 
 - **Export / Import** JSON for backup and migration (favorites are client-only and not included)
 
@@ -48,10 +65,16 @@ System-agnostic Foundry VTT v13 module: a modern music library and playlist UI o
 ```bash
 npm install
 npm run lint
+npm run release:zip   # build dist/ for GitHub release
 ```
 
 Metadata is read from ID3 tags in the browser (no changes to files on disk). Overrides are stored in world settings.
 
 ## Version
 
-**0.2.0** — playlist DnD reorder, MP3 upload, tag filters, favorites, compact player. See `spec.md` for roadmap.
+**0.2.0** — playlist DnD reorder, MP3 upload, tag filters, favorites, compact player, preview playback UI.
+
+## Links
+
+- [Repository](https://github.com/Himerio/foundry-music-library)
+- [Issues](https://github.com/Himerio/foundry-music-library/issues)
