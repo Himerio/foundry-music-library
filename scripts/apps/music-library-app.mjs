@@ -32,9 +32,20 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     super(options)
     this.selectedPlaylistId = options.selectedPlaylistId ?? ''
     this.scrollTop = 0
-    this._filterDebounce = null
+    this._filterQuery = undefined
+    this._filterRenderTimer = null
+    this._filterPersistTimer = null
+    this._trackScroller = null
     this._previewPath = null
     this._previewAudio = null
+    this._onTrackScroll = () => {
+      const scroller = this._trackScroller
+      if (!scroller) return
+      const top = scroller.scrollTop
+      if (top === this.scrollTop) return
+      this.scrollTop = top
+      this.render(false)
+    }
   }
 
   static DEFAULT_OPTIONS = {
@@ -48,7 +59,6 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     },
     position: { width: 960, height: 640 },
     actions: {
-      filterInput: MusicLibraryApp.onFilterInput,
       scan: MusicLibraryApp.onScan,
       rescan: MusicLibraryApp.onRescan,
       export: MusicLibraryApp.onExport,
@@ -101,7 +111,10 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext() {
     const sortBy = game.settings.get(MODULE_ID, SETTING_KEYS.SORT_BY)
     const sortDir = game.settings.get(MODULE_ID, SETTING_KEYS.SORT_DIR)
-    const filterQuery = game.settings.get(MODULE_ID, SETTING_KEYS.FILTER_QUERY)
+    if (this._filterQuery === undefined) {
+      this._filterQuery = game.settings.get(MODULE_ID, SETTING_KEYS.FILTER_QUERY) ?? ''
+    }
+    const filterQuery = this._filterQuery
     const activeTags = game.settings.get(MODULE_ID, SETTING_KEYS.ACTIVE_TAGS) ?? []
     const favoritesOnly = game.settings.get(MODULE_ID, SETTING_KEYS.FAVORITES_ONLY) ?? false
     const allTracks = getSortedTracks(sortBy, sortDir, filterQuery, {
@@ -198,18 +211,36 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._bindUploadInput()
     this._bindKeyboard()
     this._bindSortSelect()
-    const scroller = this.element.querySelector('.fml-virtual-scroll')
-    if (scroller && !scroller.dataset.fmlBound) {
-      scroller.dataset.fmlBound = '1'
-      scroller.addEventListener('scroll', () => {
-        this.scrollTop = scroller.scrollTop
-        this.render(false)
-      }, { passive: true })
+    this._bindFilterInput()
+    this._bindVirtualScroll()
+  }
+
+  _bindVirtualScroll() {
+    const scroller = this.element?.querySelector('.fml-virtual-scroll')
+    if (!scroller || scroller === this._trackScroller) return
+    this._unbindVirtualScroll()
+    this._trackScroller = scroller
+    scroller.addEventListener('scroll', this._onTrackScroll, { passive: true })
+  }
+
+  _unbindVirtualScroll() {
+    if (this._trackScroller) {
+      this._trackScroller.removeEventListener('scroll', this._onTrackScroll)
     }
+    this._trackScroller = null
   }
 
   async close(options = {}) {
     this._stopPreview({ render: false })
+    clearTimeout(this._filterRenderTimer)
+    clearTimeout(this._filterPersistTimer)
+    this._unbindVirtualScroll()
+    if (this._filterQuery !== undefined) {
+      const stored = game.settings.get(MODULE_ID, SETTING_KEYS.FILTER_QUERY) ?? ''
+      if (this._filterQuery !== stored) {
+        await game.settings.set(MODULE_ID, SETTING_KEYS.FILTER_QUERY, this._filterQuery)
+      }
+    }
     const pos = this.position
     if (pos) {
       await game.settings.set(MODULE_ID, SETTING_KEYS.LIBRARY_UI, {
@@ -488,14 +519,62 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     })
   }
 
-  static onFilterInput(event, target) {
-    const app = this
-    clearTimeout(app._filterDebounce)
-    app._filterDebounce = setTimeout(async () => {
-      await game.settings.set(MODULE_ID, SETTING_KEYS.FILTER_QUERY, target.value)
-      app.scrollTop = 0
-      app.render(false)
-    }, 200)
+  _bindFilterInput() {
+    const input = this.element?.querySelector('input[name="filterQuery"]')
+    if (!input || input.dataset.fmlBound) return
+    input.dataset.fmlBound = '1'
+
+    const applyFilter = async (value, selection) => {
+      if (value === this._filterQuery) return
+      this._filterQuery = value
+      this.scrollTop = 0
+      await this.render(false)
+      this._restoreFilterFocus(selection)
+    }
+
+    input.addEventListener('input', () => {
+      const value = input.value
+      const selection = { start: input.selectionStart, end: input.selectionEnd }
+
+      clearTimeout(this._filterRenderTimer)
+      this._filterRenderTimer = setTimeout(() => {
+        applyFilter(value, selection).catch((e) => console.error('FML | Filter render failed', e))
+      }, 200)
+
+      clearTimeout(this._filterPersistTimer)
+      this._filterPersistTimer = setTimeout(() => {
+        const stored = game.settings.get(MODULE_ID, SETTING_KEYS.FILTER_QUERY) ?? ''
+        if (stored !== value) {
+          game.settings.set(MODULE_ID, SETTING_KEYS.FILTER_QUERY, value)
+            .catch((e) => console.error('FML | Filter save failed', e))
+        }
+      }, 600)
+    })
+
+    input.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Enter') return
+      ev.preventDefault()
+      clearTimeout(this._filterRenderTimer)
+      clearTimeout(this._filterPersistTimer)
+      const value = input.value
+      const selection = { start: input.selectionStart, end: input.selectionEnd }
+      applyFilter(value, selection)
+        .then(() => game.settings.set(MODULE_ID, SETTING_KEYS.FILTER_QUERY, value))
+        .catch((e) => console.error('FML | Filter apply failed', e))
+    })
+  }
+
+  _restoreFilterFocus(selection) {
+    const el = this.element?.querySelector('input[name="filterQuery"]')
+    if (!el) return
+    el.focus()
+    if (selection && Number.isFinite(selection.start) && Number.isFinite(selection.end)) {
+      try {
+        el.setSelectionRange(selection.start, selection.end)
+      } catch {
+        /* input type may reject selection in edge cases */
+      }
+    }
   }
 
   static async onScan() {

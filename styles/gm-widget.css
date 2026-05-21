@@ -114,7 +114,7 @@ body.theme-light .application.fml-gm-widget {
 .fml-widget-track-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 1px;
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0;

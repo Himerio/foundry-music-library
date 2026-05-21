@@ -1,9 +1,5 @@
 <div class="fml-library" data-view="{{viewMode}}" data-upload-dropzone>
   <header class="fml-toolbar">
-    <div class="fml-search-wrap">
-      <i class="fa-solid fa-search"></i>
-      <input type="search" name="filterQuery" value="{{filterQuery}}" placeholder="{{localize "FML.Library.Search"}}" data-action="filterInput" />
-    </div>
     <div class="fml-toolbar-actions">
       <button type="button" data-action="scan" title="{{localize "FML.Library.Scan"}}"><i class="fa-solid fa-rotate"></i> {{localize "FML.Library.Scan"}}</button>
       <button type="button" data-action="rescan" title="{{localize "FML.Library.Rescan"}}"><i class="fa-solid fa-arrows-rotate"></i></button>
@@ -57,17 +53,6 @@
       </section>
       <div class="fml-sidebar-footer">
         <section class="fml-sidebar-section">
-          <div class="fml-sort">
-            <label>{{localize "FML.Library.SortBy"}}</label>
-            <select name="sortBy">
-              {{#each sortOptions}}
-              <option value="{{key}}" {{#if (eq ../sortBy key)}}selected{{/if}}>{{label}}</option>
-              {{/each}}
-            </select>
-            <button type="button" data-action="toggleSortDir" title="{{sortDir}}"><i class="fa-solid fa-arrow-{{sortDirIcon}}"></i></button>
-          </div>
-        </section>
-        <section class="fml-sidebar-section">
           <div class="fml-filters">
             <button type="button" class="fml-filter-chip {{#if favoritesOnly}}active{{/if}}" data-action="toggleFavoritesFilter" title="{{localize "FML.Library.FavoritesOnly"}}">
               <i class="fa-solid fa-star"></i> {{localize "FML.Library.FavoritesOnly"}}
@@ -116,6 +101,23 @@
       </section>
       {{/if}}
       <section class="fml-track-panel">
+        <h3>{{localize "FML.Library.AllTracks"}}</h3>
+        <div class="fml-track-toolbar">
+          <div class="fml-search-wrap">
+            <i class="fa-solid fa-search"></i>
+            <input type="search" name="filterQuery" value="{{filterQuery}}" placeholder="{{localize "FML.Library.Search"}}" />
+          </div>
+          <div class="fml-track-sort">
+            <select name="sortBy" aria-label="{{localize "FML.Library.SortBy"}}">
+              {{#each sortOptions}}
+              <option value="{{key}}" {{#if (eq ../sortBy key)}}selected{{/if}}>{{label}}</option>
+              {{/each}}
+            </select>
+            <button type="button" class="fml-sort-dir-btn" data-action="toggleSortDir" title="{{sortDir}}">
+              <i class="fa-solid fa-arrow-{{sortDirIcon}}"></i>
+            </button>
+          </div>
+        </div>
         <div class="fml-track-header">
           <span class="fml-col-favorite"></span>
           <span>{{localize "FML.Track.Title"}}</span>
