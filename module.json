@@ -1,0 +1,37 @@
+{
+  "id": "foundry-music-library",
+  "title": "Foundry Music Library",
+  "description": "Modern music library and playlist management UI on top of Foundry native audio.",
+  "version": "0.2.0",
+  "authors": [
+    {
+      "name": "Himerio"
+    }
+  ],
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "esmodules": [
+    "scripts/module.mjs"
+  ],
+  "styles": [
+    "styles/music-library.css",
+    "styles/gm-widget.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    },
+    {
+      "lang": "uk",
+      "name": "Ukrainian",
+      "path": "lang/uk.json"
+    }
+  ],
+  "flags": {
+    "allowBugReporter": true
+  }
+}

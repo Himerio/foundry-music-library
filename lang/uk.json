@@ -1,0 +1,125 @@
+{
+  "FML": {
+    "Common": {
+      "Cancel": "Скасувати",
+      "Save": "Зберегти",
+      "Delete": "Видалити",
+      "Confirm": "Підтвердити",
+      "Close": "Закрити",
+      "Yes": "Так",
+      "No": "Ні",
+      "Error": "Сталася помилка. Перевірте консоль.",
+      "NoPermission": "У вас немає прав керувати музичною бібліотекою."
+    },
+    "Settings": {
+      "MusicRoot": {
+        "Name": "Коренева папка музики",
+        "Hint": "Папка в Data лише з MP3-файлами (без підпапок)."
+      },
+      "SyncPrefix": {
+        "Name": "Префікс плейлистів Foundry",
+        "Hint": "Префікс для синхронізованих плейлистів, напр. [Music]."
+      },
+      "AllowAssistant": {
+        "Name": "Доступ Assistant GM",
+        "Hint": "Дозволити Assistant GM відкривати та керувати бібліотекою."
+      },
+      "Menu": {
+        "Name": "Налаштування Music Library",
+        "Label": "Налаштувати Music Library",
+        "Hint": "Обрати папку музики та відкрити бібліотеку."
+      },
+      "Browse": "Обрати папку",
+      "OpenLibrary": "Відкрити бібліотеку"
+    },
+    "Library": {
+      "Title": "Музична бібліотека",
+      "Search": "Пошук треків…",
+      "Scan": "Сканувати",
+      "Rescan": "Пересканувати",
+      "Export": "Експорт",
+      "Import": "Імпорт",
+      "Playlists": "Плейлисти",
+      "AllTracks": "Усі треки",
+      "NewPlaylist": "Новий плейлист",
+      "PlaylistName": "Назва плейлиста",
+      "RenamePlaylist": "Перейменувати",
+      "DeletePlaylist": "Видалити",
+      "DuplicatePlaylist": "Дублювати",
+      "PlaylistTracks": "Треки плейлиста",
+      "AddTrack": "Додати",
+      "RemoveTrack": "Прибрати",
+      "DragReorder": "Перетягніть для зміни порядку",
+      "EmptyTracks": "Треки не проіндексовані. Оберіть папку музики та натисніть Сканувати.",
+      "EmptyPlaylists": "Плейлистів ще немає. Створіть перший.",
+      "EmptyPlaylistTracks": "У цьому плейлисті немає треків.",
+      "MissingTracks": "{count} проіндексованих треків відсутні на диску.",
+      "ScanComplete": "Сканування завершено: {added} додано, {updated} оновлено, {missing} відсутні.",
+      "SelectPlaylist": "Оберіть плейлист",
+      "SortBy": "Сортування",
+      "OpenWidget": "GM-плеєр",
+      "FilterTags": "Теги",
+      "ClearTags": "Скинути",
+      "FavoritesOnly": "Обране",
+      "ToggleFavorite": "Додати / прибрати з обраного"
+    },
+    "Track": {
+      "Title": "Назва",
+      "Artist": "Виконавець",
+      "Album": "Альбом",
+      "Duration": "Тривалість",
+      "Filename": "Файл",
+      "Tags": "Теги",
+      "EditMetadata": "Редагувати метадані",
+      "AddToPlaylist": "Додати до плейлиста",
+      "PlayPreview": "Попередній перегляд",
+      "StopPreview": "Зупинити прев’ю",
+      "PreviewPlaying": "Прев’ю: {track}",
+      "TogglePreview": "Слухати прев’ю",
+      "TogglePreviewStop": "Зупинити прев’ю",
+      "CopyFilename": "Копіювати ім'я файлу",
+      "Missing": "відсутній"
+    },
+    "Metadata": {
+      "Title": "Редагування метаданих",
+      "TagsHint": "Теги через кому"
+    },
+    "Upload": {
+      "Button": "Завантажити",
+      "Complete": "Завантажено файлів: {uploaded}. Пропущено: {skipped}.",
+      "Skipped": "Нічого не завантажено. Пропущено: {skipped} (дублікат або невалідний файл).",
+      "Failed": "Не вдалося завантажити один або кілька файлів."
+    },
+    "Widget": {
+      "Title": "Музичний плеєр",
+      "NowPlaying": "Зараз грає",
+      "NothingPlaying": "Нічого не грає",
+      "SelectPlaylist": "Плейлист",
+      "Play": "Грати",
+      "Stop": "Стоп",
+      "ModeSequential": "Послідовне відтворення (клік — перемішати)",
+      "ModeShuffle": "Випадковий порядок (клік — послідовно)",
+      "Previous": "Попередній",
+      "Next": "Наступний",
+      "Volume": "Гучність",
+      "Show": "Показати плеєр",
+      "Hide": "Сховати плеєр",
+      "Compact": "Компактний режим",
+      "Expand": "Повний режим",
+      "PlaylistNotSynced": "Не вдалося знайти або синхронізувати плейлист Foundry. Відкрийте Music Library і переконайтесь, що в плейлисті є треки."
+    },
+    "Import": {
+      "Title": "Імпорт Music Library",
+      "Mode": "Режим імпорту",
+      "Merge": "Об'єднати",
+      "Replace": "Замінити",
+      "MetadataOnly": "Лише метадані",
+      "PlaylistsOnly": "Лише плейлисти",
+      "Warnings": "Попередження імпорту",
+      "MissingFiles": "{count} шлях(ів) без файлу на диску."
+    },
+    "Controls": {
+      "MusicLibrary": "Музична бібліотека"
+    }
+  }
+}

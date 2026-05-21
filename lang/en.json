@@ -1,0 +1,125 @@
+{
+  "FML": {
+    "Common": {
+      "Cancel": "Cancel",
+      "Save": "Save",
+      "Delete": "Delete",
+      "Confirm": "Confirm",
+      "Close": "Close",
+      "Yes": "Yes",
+      "No": "No",
+      "Error": "An error occurred. See the console.",
+      "NoPermission": "You do not have permission to manage the music library."
+    },
+    "Settings": {
+      "MusicRoot": {
+        "Name": "Music Root Folder",
+        "Hint": "Folder under Data containing MP3 files only (no subfolders)."
+      },
+      "SyncPrefix": {
+        "Name": "Foundry Playlist Prefix",
+        "Hint": "Prefix for synced native playlists, e.g. [Music]."
+      },
+      "AllowAssistant": {
+        "Name": "Allow Assistant GM",
+        "Hint": "Let Assistant GMs open and manage the music library."
+      },
+      "Menu": {
+        "Name": "Music Library Settings",
+        "Label": "Configure Music Library",
+        "Hint": "Choose music folder and open the library."
+      },
+      "Browse": "Browse Folder",
+      "OpenLibrary": "Open Music Library"
+    },
+    "Library": {
+      "Title": "Music Library",
+      "Search": "Search tracks…",
+      "Scan": "Scan",
+      "Rescan": "Rescan",
+      "Export": "Export",
+      "Import": "Import",
+      "Playlists": "Playlists",
+      "AllTracks": "All Tracks",
+      "NewPlaylist": "New Playlist",
+      "PlaylistName": "Playlist name",
+      "RenamePlaylist": "Rename",
+      "DeletePlaylist": "Delete",
+      "DuplicatePlaylist": "Duplicate",
+      "PlaylistTracks": "Playlist Tracks",
+      "AddTrack": "Add",
+      "RemoveTrack": "Remove",
+      "DragReorder": "Drag to reorder",
+      "EmptyTracks": "No tracks indexed. Select a music folder and run Scan.",
+      "EmptyPlaylists": "No playlists yet. Create one to get started.",
+      "EmptyPlaylistTracks": "No tracks in this playlist.",
+      "MissingTracks": "{count} indexed track(s) are missing from disk.",
+      "ScanComplete": "Scan complete: {added} added, {updated} updated, {missing} missing.",
+      "SelectPlaylist": "Select a playlist",
+      "SortBy": "Sort by",
+      "OpenWidget": "GM Player",
+      "FilterTags": "Tags",
+      "ClearTags": "Clear",
+      "FavoritesOnly": "Favorites",
+      "ToggleFavorite": "Toggle favorite"
+    },
+    "Track": {
+      "Title": "Title",
+      "Artist": "Artist",
+      "Album": "Album",
+      "Duration": "Duration",
+      "Filename": "File",
+      "Tags": "Tags",
+      "EditMetadata": "Edit Metadata",
+      "AddToPlaylist": "Add to Playlist",
+      "PlayPreview": "Play Preview",
+      "StopPreview": "Stop Preview",
+      "PreviewPlaying": "Preview: {track}",
+      "TogglePreview": "Play preview",
+      "TogglePreviewStop": "Stop preview",
+      "CopyFilename": "Copy Filename",
+      "Missing": "missing"
+    },
+    "Metadata": {
+      "Title": "Edit Metadata",
+      "TagsHint": "Comma-separated tags"
+    },
+    "Upload": {
+      "Button": "Upload",
+      "Complete": "Uploaded {uploaded} file(s). Skipped {skipped}.",
+      "Skipped": "No files uploaded. {skipped} skipped (duplicate or invalid).",
+      "Failed": "Upload failed for one or more files."
+    },
+    "Widget": {
+      "Title": "Music Player",
+      "NowPlaying": "Now Playing",
+      "NothingPlaying": "Nothing playing",
+      "SelectPlaylist": "Playlist",
+      "Play": "Play",
+      "Stop": "Stop",
+      "ModeSequential": "Sequential playback (click to shuffle)",
+      "ModeShuffle": "Shuffle tracks (click for sequential)",
+      "Previous": "Previous",
+      "Next": "Next",
+      "Volume": "Volume",
+      "Show": "Show Player",
+      "Hide": "Hide Player",
+      "Compact": "Compact mode",
+      "Expand": "Expanded mode",
+      "PlaylistNotSynced": "Could not find or sync the Foundry playlist. Open Music Library and ensure the playlist has tracks."
+    },
+    "Import": {
+      "Title": "Import Music Library",
+      "Mode": "Import mode",
+      "Merge": "Merge",
+      "Replace": "Replace",
+      "MetadataOnly": "Metadata only",
+      "PlaylistsOnly": "Playlists only",
+      "Warnings": "Import warnings",
+      "MissingFiles": "{count} track path(s) have no file on disk."
+    },
+    "Controls": {
+      "MusicLibrary": "Music Library"
+    }
+  }
+}

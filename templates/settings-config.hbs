@@ -1,0 +1,24 @@
+<div class="fml-settings">
+  <div class="form-group">
+    <label>{{localize "FML.Settings.MusicRoot.Name"}}</label>
+    <div class="form-fields">
+      <input type="text" name="musicRoot" value="{{musicRoot}}" />
+      <button type="button" data-action="browseRoot">
+        <i class="fa-solid fa-folder-open"></i> {{localize "FML.Settings.Browse"}}
+      </button>
+    </div>
+    <p class="hint">{{localize "FML.Settings.MusicRoot.Hint"}}</p>
+  </div>
+  <div class="form-group">
+    <label>
+      <input type="checkbox" name="allowAssistant" {{checked allowAssistant}} />
+      {{localize "FML.Settings.AllowAssistant.Name"}}
+    </label>
+    <p class="hint">{{localize "FML.Settings.AllowAssistant.Hint"}}</p>
+  </div>
+  <footer class="sheet-footer flexrow">
+    <button type="button" data-action="openLibrary">
+      <i class="fa-solid fa-music"></i> {{localize "FML.Settings.OpenLibrary"}}
+    </button>
+  </footer>
+</div>

@@ -1,0 +1,622 @@
+/* Foundry v13 core often omits legacy --color-border-light-*; use module tokens + fallbacks */
+.application.fml-music-library-app,
+.fml-library {
+  --fml-border-divider: var(
+    --color-border-light-1,
+    var(--color-border-light-2, color-mix(in srgb, var(--color-text-primary, #c8c8c8) 16%, transparent))
+  );
+  --fml-border-focus: var(--color-text-hyperlink, var(--color-text-emphatic, #4a9eff));
+}
+
+body.theme-light .application.fml-music-library-app,
+body.theme-light .fml-library {
+  --fml-border-divider: var(
+    --color-border-light-1,
+    var(--color-border-light-2, color-mix(in srgb, var(--color-text-primary, #1a1a1a) 14%, transparent))
+  );
+}
+
+.fml-library {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 400px;
+  font-size: var(--font-size-14);
+}
+
+.fml-toolbar {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--fml-border-divider);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.fml-search-wrap {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--color-bg-option);
+  border-radius: 4px;
+  padding: 0 0.5rem;
+}
+
+.fml-search-wrap input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.4rem 0;
+}
+
+.fml-toolbar-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.fml-banner.warning {
+  background: rgba(255, 180, 0, 0.15);
+  padding: 0.4rem 0.75rem;
+  font-size: var(--font-size-12);
+  border-bottom: 1px solid var(--fml-border-divider);
+}
+
+.fml-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid var(--fml-border-divider);
+  font-size: var(--font-size-12);
+  background: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 8%, transparent);
+}
+
+.fml-preview-bar-icon {
+  flex: 0 0 auto;
+  opacity: 0.85;
+}
+
+.fml-preview-bar-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.fml-preview-bar-stop {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.fml-body {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fml-sidebar {
+  border-right: 1px solid var(--fml-border-divider);
+  display: flex;
+  flex-direction: column;
+  padding: 0.65rem 0.6rem;
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fml-sidebar-section {
+  margin: 0;
+}
+
+.fml-sidebar-section--playlists {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  overflow: hidden;
+  padding-bottom: 0.5rem;
+}
+
+.fml-sidebar-section--playlists .fml-playlist-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.fml-sidebar-footer {
+  flex: 0 0 auto;
+  padding-top: 0.65rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--fml-border-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.fml-sidebar-footer > .fml-sidebar-section + .fml-sidebar-section {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--fml-border-divider);
+}
+
+.fml-sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.fml-sidebar-header h3 {
+  margin: 0;
+  font-size: var(--font-size-13);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.fml-playlist-list {
+  list-style: none;
+  margin: 0;
+  padding: 1px;
+}
+
+.fml-playlist-list button {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 0.4rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.fml-playlist-list button.active {
+  background: var(--color-bg-option);
+}
+
+.fml-playlist-list .badge {
+  opacity: 0.7;
+  font-size: var(--font-size-11);
+}
+
+/* Active playlist + action buttons as one grouped block */
+.fml-playlist-item--selected {
+  margin: 0.15rem 0 0.45rem;
+  border: 1px solid var(--fml-border-divider);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 7%, transparent);
+  overflow: hidden;
+}
+
+.fml-playlist-item--selected > button.active {
+  border-radius: 4px 4px 0 0;
+  margin-bottom: 0;
+  background: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 11%, transparent);
+}
+
+.fml-playlist-actions {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: space-evenly;
+  align-items: center;
+  padding: 0.32rem 0.35rem;
+  margin: 0;
+  border-top: 1px solid var(--fml-border-divider);
+  background: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 9%, transparent);
+}
+
+.fml-playlist-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 1.65rem;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  opacity: 0.88;
+  cursor: pointer;
+}
+
+.fml-playlist-actions button:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 14%, transparent);
+}
+
+.fml-playlist-actions button[data-action="deletePlaylist"]:hover {
+  color: #e66;
+}
+
+body.theme-light .fml-playlist-item--selected {
+  background: color-mix(in srgb, var(--color-text-primary, #1a1a1a) 5%, transparent);
+}
+
+body.theme-light .fml-playlist-item--selected > button.active {
+  background: color-mix(in srgb, var(--color-text-primary, #1a1a1a) 8%, transparent);
+}
+
+body.theme-light .fml-playlist-actions {
+  background: color-mix(in srgb, var(--color-text-primary, #1a1a1a) 6%, transparent);
+}
+
+.fml-sort {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  position: relative;
+  z-index: 2;
+}
+
+.fml-sort label {
+  font-size: var(--font-size-12);
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.fml-sort select {
+  width: 100%;
+}
+
+.fml-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  gap: 0;
+}
+
+.fml-playlist-panel {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: calc(100% - 33%);
+  padding: 0.7rem 0.85rem 0.75rem;
+  margin: 0.5rem 0.65rem 0;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--fml-border-divider);
+}
+
+.fml-playlist-panel h3 {
+  margin: 0 0 0.55rem;
+  padding-bottom: 0.45rem;
+  font-size: var(--font-size-13);
+  font-weight: 600;
+  border-bottom: 1px solid var(--fml-border-divider);
+}
+
+.fml-playlist-panel + .fml-track-panel {
+  margin-top: 0.35rem;
+}
+
+.fml-playlist-panel + .fml-track-panel .fml-track-header {
+  margin-top: 0.15rem;
+}
+
+.fml-playlist-tracks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fml-playlist-tracks li {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  margin: 0;
+  border-radius: 4px;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+  cursor: grab;
+}
+
+.fml-playlist-tracks li.dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
+.fml-playlist-tracks li.drop-target {
+  outline: 1px dashed var(--fml-border-focus);
+  outline-offset: -1px;
+}
+
+.fml-playlist-tracks .drag-handle {
+  opacity: 0.55;
+  cursor: grab;
+  padding: 0 0.15rem;
+}
+
+.fml-playlist-tracks .drag-handle i {
+  pointer-events: none;
+}
+
+.fml-playlist-tracks li:hover {
+  background-color: rgba(255, 255, 255, 0.09);
+}
+
+.fml-playlist-tracks li.missing {
+  opacity: 0.55;
+}
+
+.fml-playlist-tracks li.missing:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+body.theme-light .fml-library .fml-playlist-tracks li:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+body.theme-light .fml-library .fml-playlist-tracks li.missing:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.fml-track-panel {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 0.65rem 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* With an active playlist: playlist grows (scroll inside), library ≥ 1/3 of main area */
+.fml-main:has(.fml-playlist-panel) .fml-track-panel {
+  flex: 1 0 33%;
+  min-height: 33%;
+}
+
+.fml-main:has(.fml-playlist-panel) .fml-virtual-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.fml-track-header {
+  display: grid;
+  grid-template-columns: auto 1.2fr 1fr 70px 96px;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem 0.5rem;
+  margin-bottom: 0.15rem;
+  font-weight: bold;
+  font-size: var(--font-size-12);
+  border-bottom: 1px solid var(--fml-border-divider);
+  opacity: 0.85;
+}
+
+.fml-virtual-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+}
+
+.fml-virtual-spacer {
+  width: 1px;
+  pointer-events: none;
+}
+
+.fml-virtual-window {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+}
+
+.fml-track-row {
+  display: grid;
+  grid-template-columns: auto 1.2fr 1fr 70px 96px;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  height: 36px;
+  box-sizing: border-box;
+  border-radius: 4px;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+}
+
+.fml-track-row:hover {
+  background-color: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 9%, transparent);
+}
+
+.fml-track-row.missing:hover {
+  background-color: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 6%, transparent);
+}
+
+body.theme-light .fml-library .fml-track-row:hover {
+  background-color: color-mix(in srgb, var(--color-text-primary, #1a1a1a) 6%, transparent);
+}
+
+body.theme-light .fml-library .fml-track-row.missing:hover {
+  background-color: color-mix(in srgb, var(--color-text-primary, #1a1a1a) 4%, transparent);
+}
+
+.fml-track-row--previewing {
+  background-color: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 12%, transparent);
+}
+
+.fml-track-row--previewing:hover {
+  background-color: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 16%, transparent);
+}
+
+.fml-track-row--previewing .title {
+  font-weight: 600;
+}
+
+.fml-track-row.missing {
+  opacity: 0.5;
+}
+
+.fml-preview-btn.active {
+  color: var(--fml-border-focus, var(--color-text-hyperlink, #4a9eff));
+}
+
+/* Uniform track control buttons (playlist + library rows) */
+.fml-library .actions,
+.fml-library .row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.fml-library .actions {
+  flex-direction: column;
+}
+
+.fml-playlist-tracks .actions button i {
+  pointer-events: none;
+}
+
+.fml-library .row-actions {
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+.fml-library .actions button,
+.fml-library .row-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  box-sizing: border-box;
+  flex: 0 0 1.75rem;
+}
+
+.fml-library .actions button i,
+.fml-library .row-actions button i {
+  font-size: var(--font-size-12);
+  width: 1em;
+  text-align: center;
+  pointer-events: none;
+}
+
+.fml-empty {
+  padding: 2rem;
+  text-align: center;
+  opacity: 0.75;
+}
+
+.fml-settings .form-group {
+  margin-bottom: 0.75rem;
+}
+
+.fml-library.fml-upload-hover .fml-track-panel {
+  background-color: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 9%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--fml-border-focus, #569cd6) 55%, transparent);
+}
+
+body.theme-light .fml-library.fml-upload-hover .fml-track-panel {
+  background-color: color-mix(in srgb, var(--color-text-primary, #1a1a1a) 6%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--fml-border-focus, #569cd6) 40%, transparent);
+}
+
+.fml-filters {
+  margin: 0;
+}
+
+.fml-filter-chip,
+.fml-tag-chip {
+  border: 1px solid var(--fml-border-divider);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: var(--font-size-11);
+  padding: 0.2rem 0.55rem;
+  cursor: pointer;
+}
+
+.fml-filter-chip.active,
+.fml-tag-chip.active {
+  background: var(--color-bg-option);
+  border-color: var(--fml-border-focus);
+}
+
+.fml-tag-filters {
+  margin: 0;
+}
+
+.fml-tag-filters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-size-12);
+  font-weight: 600;
+  opacity: 0.85;
+  margin-bottom: 0.45rem;
+  padding-bottom: 0.35rem;
+}
+
+.fml-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.fml-tag-clear {
+  border: none;
+  background: none;
+  color: var(--color-text-hyperlink);
+  font-size: var(--font-size-11);
+  cursor: pointer;
+  padding: 0;
+}
+
+.fml-favorite-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.35;
+  cursor: pointer;
+}
+
+.fml-favorite-btn.active {
+  opacity: 1;
+  color: #e6b422;
+}
+
+.fml-favorite-btn i {
+  pointer-events: none;
+}
+
+.fml-settings .form-fields {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.fml-settings .form-fields input {
+  flex: 1;
+}
+
+.application.fml-music-library-app .window-content {
+  padding: 0;
+  overflow: hidden;
+}

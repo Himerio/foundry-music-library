@@ -1,0 +1,30 @@
+<div class="fml-widget{{#if compact}} fml-widget--compact{{/if}}">
+  <header class="fml-widget-header">
+    <i class="fa-solid fa-music"></i>
+    <select name="playlistId">
+      {{#each playlists}}
+      <option value="{{id}}" {{#if (eq ../activePlaylistId id)}}selected{{/if}}>{{name}}</option>
+      {{/each}}
+    </select>
+    <button type="button" data-action="toggleCompact" title="{{compactLabel}}"><i class="fa-solid {{compactIcon}}"></i></button>
+    <button type="button" data-action="closeWidget" title="{{localize "FML.Widget.Hide"}}"><i class="fa-solid fa-xmark"></i></button>
+  </header>
+  <div class="fml-widget-now{{#if compact}} fml-widget-now--compact{{/if}}">
+    {{#unless compact}}
+    <div class="label">{{localize "FML.Widget.NowPlaying"}}</div>
+    {{/unless}}
+    <div class="track" title="{{nowPlaying}}">{{nowPlaying}}</div>
+  </div>
+  <div class="fml-widget-controls">
+    <button type="button" data-action="prev" title="{{localize "FML.Widget.Previous"}}"><i class="fa-solid fa-backward-step"></i></button>
+    <button type="button" data-action="togglePlay" title="{{playPauseLabel}}"><i class="fa-solid {{playPauseIcon}}"></i></button>
+    <button type="button" data-action="next" title="{{localize "FML.Widget.Next"}}"><i class="fa-solid fa-forward-step"></i></button>
+    <button type="button" data-action="toggleMode" title="{{modeLabel}}"><i class="fa-solid {{modeIcon}}"></i></button>
+  </div>
+  {{#unless compact}}
+  <div class="fml-widget-volume">
+    <label>{{localize "FML.Widget.Volume"}}</label>
+    <input type="range" name="volume" min="0" max="1" step="0.05" value="{{volume}}" title="{{localize "FML.Widget.Volume"}}" />
+  </div>
+  {{/unless}}
+</div>

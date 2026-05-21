@@ -1,0 +1,153 @@
+<div class="fml-library" data-view="{{viewMode}}" data-upload-dropzone>
+  <header class="fml-toolbar">
+    <div class="fml-search-wrap">
+      <i class="fa-solid fa-search"></i>
+      <input type="search" name="filterQuery" value="{{filterQuery}}" placeholder="{{localize "FML.Library.Search"}}" data-action="filterInput" />
+    </div>
+    <div class="fml-toolbar-actions">
+      <button type="button" data-action="scan" title="{{localize "FML.Library.Scan"}}"><i class="fa-solid fa-rotate"></i> {{localize "FML.Library.Scan"}}</button>
+      <button type="button" data-action="rescan" title="{{localize "FML.Library.Rescan"}}"><i class="fa-solid fa-arrows-rotate"></i></button>
+      <button type="button" data-action="export"><i class="fa-solid fa-file-export"></i> {{localize "FML.Library.Export"}}</button>
+      <button type="button" data-action="import"><i class="fa-solid fa-file-import"></i> {{localize "FML.Library.Import"}}</button>
+      <button type="button" data-action="openWidget"><i class="fa-solid fa-compact-disc"></i> {{localize "FML.Library.OpenWidget"}}</button>
+      <button type="button" data-action="uploadTracks" title="{{localize "FML.Upload.Button"}}"><i class="fa-solid fa-upload"></i> {{localize "FML.Upload.Button"}}</button>
+      <input type="file" class="fml-upload-input" accept=".mp3,audio/mpeg" multiple hidden />
+    </div>
+  </header>
+  {{#if missingCount}}
+  <div class="fml-banner warning"><i class="fa-solid fa-triangle-exclamation"></i> {{missingBanner}}</div>
+  {{/if}}
+  {{#if previewTrack}}
+  <div class="fml-preview-bar">
+    <i class="fa-solid fa-volume-high fml-preview-bar-icon"></i>
+    <span class="fml-preview-bar-label">{{previewTrack.label}}</span>
+    <button type="button" class="fml-preview-bar-stop" data-action="stopPreview" title="{{localize "FML.Track.StopPreview"}}">
+      <i class="fa-solid fa-stop"></i> {{localize "FML.Track.StopPreview"}}
+    </button>
+  </div>
+  {{/if}}
+  <div class="fml-body">
+    <aside class="fml-sidebar">
+      <section class="fml-sidebar-section fml-sidebar-section--playlists">
+        <div class="fml-sidebar-header">
+          <h3>{{localize "FML.Library.Playlists"}}</h3>
+          <button type="button" data-action="newPlaylist" title="{{localize "FML.Library.NewPlaylist"}}"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <ul class="fml-playlist-list">
+          <li>
+            <button type="button" class="{{#if (eq selectedPlaylistId "")}}active{{/if}}" data-action="selectLibrary">
+              {{localize "FML.Library.AllTracks"}} <span class="badge">{{trackCount}}</span>
+            </button>
+          </li>
+          {{#each playlists}}
+          <li class="fml-playlist-item{{#if (eq ../selectedPlaylistId id)}} fml-playlist-item--selected{{/if}}">
+            <button type="button" class="{{#if (eq ../selectedPlaylistId id)}}active{{/if}}" data-action="selectPlaylist" data-playlist-id="{{id}}">
+              {{name}} <span class="badge">{{trackPaths.length}}</span>
+            </button>
+            {{#if (eq ../selectedPlaylistId id)}}
+            <div class="fml-playlist-actions">
+              <button type="button" data-action="renamePlaylist" title="{{localize "FML.Library.RenamePlaylist"}}"><i class="fa-solid fa-pen"></i></button>
+              <button type="button" data-action="duplicatePlaylist" title="{{localize "FML.Library.DuplicatePlaylist"}}"><i class="fa-solid fa-copy"></i></button>
+              <button type="button" data-action="deletePlaylist" title="{{localize "FML.Library.DeletePlaylist"}}"><i class="fa-solid fa-trash"></i></button>
+            </div>
+            {{/if}}
+          </li>
+          {{/each}}
+        </ul>
+      </section>
+      <div class="fml-sidebar-footer">
+        <section class="fml-sidebar-section">
+          <div class="fml-sort">
+            <label>{{localize "FML.Library.SortBy"}}</label>
+            <select name="sortBy">
+              {{#each sortOptions}}
+              <option value="{{key}}" {{#if (eq ../sortBy key)}}selected{{/if}}>{{label}}</option>
+              {{/each}}
+            </select>
+            <button type="button" data-action="toggleSortDir" title="{{sortDir}}"><i class="fa-solid fa-arrow-{{sortDirIcon}}"></i></button>
+          </div>
+        </section>
+        <section class="fml-sidebar-section">
+          <div class="fml-filters">
+            <button type="button" class="fml-filter-chip {{#if favoritesOnly}}active{{/if}}" data-action="toggleFavoritesFilter" title="{{localize "FML.Library.FavoritesOnly"}}">
+              <i class="fa-solid fa-star"></i> {{localize "FML.Library.FavoritesOnly"}}
+            </button>
+          </div>
+        </section>
+        {{#if tagChips.length}}
+        <section class="fml-sidebar-section">
+          <div class="fml-tag-filters">
+            <div class="fml-tag-filters-header">
+              <span>{{localize "FML.Library.FilterTags"}}</span>
+              {{#if activeTags.length}}
+              <button type="button" class="fml-tag-clear" data-action="clearTagFilter" title="{{localize "FML.Library.ClearTags"}}">{{localize "FML.Library.ClearTags"}}</button>
+              {{/if}}
+            </div>
+            <div class="fml-tag-chips">
+              {{#each tagChips}}
+              <button type="button" class="fml-tag-chip {{#if active}}active{{/if}}" data-action="toggleTagFilter" data-tag="{{tag}}">{{tag}}</button>
+              {{/each}}
+            </div>
+          </div>
+        </section>
+        {{/if}}
+      </div>
+    </aside>
+    <main class="fml-main">
+      {{#if selectedPlaylist}}
+      <section class="fml-playlist-panel">
+        <h3>{{localize "FML.Library.PlaylistTracks"}}: {{selectedPlaylist.name}}</h3>
+        {{#if playlistTracks.length}}
+        <ul class="fml-playlist-tracks">
+          {{#each playlistTracks}}
+          <li data-path="{{path}}" class="{{#if missing}}missing{{/if}}" draggable="true">
+            <span class="drag-handle" title="{{localize "FML.Library.DragReorder"}}"><i class="fa-solid fa-grip-vertical"></i></span>
+            <span class="title">{{display}}</span>
+            <span class="duration">{{duration}}</span>
+            <div class="actions">
+              <button type="button" data-action="removeFromPlaylist" data-path="{{path}}" title="{{localize "FML.Library.RemoveTrack"}}"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+          </li>
+          {{/each}}
+        </ul>
+        {{else}}
+        <p class="fml-empty">{{localize "FML.Library.EmptyPlaylistTracks"}}</p>
+        {{/if}}
+      </section>
+      {{/if}}
+      <section class="fml-track-panel">
+        <div class="fml-track-header">
+          <span class="fml-col-favorite"></span>
+          <span>{{localize "FML.Track.Title"}}</span>
+          <span>{{localize "FML.Track.Artist"}}</span>
+          <span>{{localize "FML.Track.Duration"}}</span>
+          <span></span>
+        </div>
+        {{#if emptyLibrary}}
+        <p class="fml-empty">{{localize "FML.Library.EmptyTracks"}}</p>
+        {{else}}
+        <div class="fml-virtual-scroll" data-action="trackScroll">
+          <div class="fml-virtual-spacer" style="height: {{virtualHeight}}px"></div>
+          <div class="fml-virtual-window" style="transform: translateY({{virtualOffset}}px)">
+            {{#each visibleTracks}}
+            <div class="fml-track-row{{#if previewing}} fml-track-row--previewing{{/if}}{{#if missing}} missing{{/if}}" data-path="{{path}}" data-context-menu="track">
+              <button type="button" class="fml-favorite-btn {{#if favorite}}active{{/if}}" data-action="toggleFavorite" data-path="{{path}}" title="{{localize "FML.Library.ToggleFavorite"}}"><i class="fa-solid fa-star"></i></button>
+              <span class="title">{{title}}</span>
+              <span class="artist">{{artist}}</span>
+              <span class="duration">{{duration}}</span>
+              <span class="row-actions">
+                <button type="button" class="fml-preview-btn{{#if previewing}} active{{/if}}" data-action="togglePreview" data-path="{{path}}" title="{{#if previewing}}{{localize "FML.Track.TogglePreviewStop"}}{{else}}{{localize "FML.Track.TogglePreview"}}{{/if}}"><i class="fa-solid {{#if previewing}}fa-stop{{else}}fa-play{{/if}}"></i></button>
+                {{#if ../showAddToPlaylist}}
+                <button type="button" data-action="addToPlaylist" data-path="{{path}}" title="{{localize "FML.Track.AddToPlaylist"}}"><i class="fa-solid fa-plus"></i></button>
+                {{/if}}
+                <button type="button" data-action="editMetadata" data-path="{{path}}" title="{{localize "FML.Track.EditMetadata"}}"><i class="fa-solid fa-pen"></i></button>
+              </span>
+            </div>
+            {{/each}}
+          </div>
+        </div>
+        {{/if}}
+      </section>
+    </main>
+  </div>
+</div>
