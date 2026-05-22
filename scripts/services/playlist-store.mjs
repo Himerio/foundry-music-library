@@ -57,11 +57,26 @@ export async function setPlaylistTracks(id, trackPaths) {
   return p
 }
 
-export async function addTrackToPlaylist(id, trackPath) {
+/**
+ * @param {string} id
+ * @param {string} trackPath
+ * @param {number} [index] Insert index; omit to append
+ */
+export async function insertTrackIntoPlaylist(id, trackPath, index) {
   const p = getPlaylistById(id)
-  if (!p || p.trackPaths.includes(trackPath)) return p
-  p.trackPaths.push(trackPath)
-  return setPlaylistTracks(id, p.trackPaths)
+  if (!p || !trackPath) return p
+  if (p.trackPaths.includes(trackPath)) return p
+  const paths = [...p.trackPaths]
+  if (Number.isInteger(index) && index >= 0 && index <= paths.length) {
+    paths.splice(index, 0, trackPath)
+  } else {
+    paths.push(trackPath)
+  }
+  return setPlaylistTracks(id, paths)
+}
+
+export async function addTrackToPlaylist(id, trackPath) {
+  return insertTrackIntoPlaylist(id, trackPath)
 }
 
 export async function removeTrackFromPlaylist(id, trackPath) {

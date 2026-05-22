@@ -1,0 +1,65 @@
+<div class="fml-bulk-metadata-editor">
+  <p class="fml-bulk-summary">{{summary}}</p>
+  <div class="form-group fml-bulk-tags-mode">
+    <label for="fml-bulk-tags-mode">{{tagsModeLabel}}</label>
+    <select id="fml-bulk-tags-mode" name="tagsMode">
+      <option value="replace">{{tagsReplace}}</option>
+      <option value="merge">{{tagsMerge}}</option>
+      <option value="clear">{{tagsClear}}</option>
+    </select>
+  </div>
+  <div class="fml-bulk-table-wrap">
+    <table class="fml-bulk-table">
+      <colgroup>
+        <col class="fml-bulk-col-track" />
+        <col />
+        <col />
+        <col />
+        <col />
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="fml-bulk-col-track">{{trackColumn}}</th>
+          <th class="fml-bulk-col-field">
+            <label class="fml-bulk-apply-head">
+              <input type="checkbox" name="applyTitle" value="1" />
+              <span>{{localize "FML.Track.Title"}}</span>
+            </label>
+          </th>
+          <th class="fml-bulk-col-field">
+            <label class="fml-bulk-apply-head">
+              <input type="checkbox" name="applyArtist" value="1" />
+              <span>{{localize "FML.Track.Artist"}}</span>
+            </label>
+          </th>
+          <th class="fml-bulk-col-field">
+            <label class="fml-bulk-apply-head">
+              <input type="checkbox" name="applyAlbum" value="1" />
+              <span>{{localize "FML.Track.Album"}}</span>
+            </label>
+          </th>
+          <th class="fml-bulk-col-field">
+            <label class="fml-bulk-apply-head">
+              <input type="checkbox" name="applyTags" value="1" />
+              <span>{{localize "FML.Track.Tags"}}</span>
+            </label>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each rows}}
+        <tr data-path="{{path}}">
+          <td class="fml-bulk-track-cell" title="{{path}}">
+            <span class="fml-bulk-track-label">{{label}}</span>
+            <span class="fml-bulk-track-file">{{filename}}</span>
+          </td>
+          <td><input type="text" name="title" value="{{title}}" placeholder="{{leaveEmptyHint}}" /></td>
+          <td><input type="text" name="artist" value="{{artist}}" placeholder="{{leaveEmptyHint}}" /></td>
+          <td><input type="text" name="album" value="{{album}}" placeholder="{{leaveEmptyHint}}" /></td>
+          <td><input type="text" name="tags" value="{{tagsText}}" placeholder="{{tagsHint}}" /></td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+</div>

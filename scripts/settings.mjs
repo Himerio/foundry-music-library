@@ -50,7 +50,7 @@ export function registerSettings() {
     scope: 'client',
     config: false,
     type: Object,
-    default: { width: 960, height: 640, top: 80, left: 120 }
+    default: { width: 960, height: 800, top: 80, left: 120 }
   })
 
   game.settings.register(MODULE_ID, SETTING_KEYS.WIDGET_UI, {
@@ -112,6 +112,20 @@ export function registerSettings() {
   })
 
   game.settings.register(MODULE_ID, SETTING_KEYS.FAVORITES_ONLY, {
+    scope: 'client',
+    config: false,
+    type: Boolean,
+    default: false
+  })
+
+  game.settings.register(MODULE_ID, SETTING_KEYS.ACTIVE_ARTISTS, {
+    scope: 'client',
+    config: false,
+    type: Array,
+    default: []
+  })
+
+  game.settings.register(MODULE_ID, SETTING_KEYS.MISSING_METADATA_ONLY, {
     scope: 'client',
     config: false,
     type: Boolean,

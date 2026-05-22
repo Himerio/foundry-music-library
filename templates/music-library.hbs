@@ -57,8 +57,28 @@
             <button type="button" class="fml-filter-chip {{#if favoritesOnly}}active{{/if}}" data-action="toggleFavoritesFilter" title="{{localize "FML.Library.FavoritesOnly"}}">
               <i class="fa-solid fa-star"></i> {{localize "FML.Library.FavoritesOnly"}}
             </button>
+            <button type="button" class="fml-filter-chip {{#if missingMetadataOnly}}active{{/if}}" data-action="toggleMissingMetadataFilter" title="{{localize "FML.Library.MissingMetadataOnly"}}">
+              <i class="fa-solid fa-circle-question"></i> {{localize "FML.Library.MissingMetadataOnly"}}
+            </button>
           </div>
         </section>
+        {{#if artistChips.length}}
+        <section class="fml-sidebar-section">
+          <div class="fml-artist-filters">
+            <div class="fml-tag-filters-header">
+              <span>{{localize "FML.Library.FilterArtists"}}</span>
+              {{#if activeArtists.length}}
+              <button type="button" class="fml-tag-clear" data-action="clearArtistFilter" title="{{localize "FML.Library.ClearArtists"}}">{{localize "FML.Library.ClearArtists"}}</button>
+              {{/if}}
+            </div>
+            <div class="fml-tag-chips">
+              {{#each artistChips}}
+              <button type="button" class="fml-tag-chip {{#if active}}active{{/if}}" data-action="toggleArtistFilter" data-artist="{{artist}}">{{artist}}</button>
+              {{/each}}
+            </div>
+          </div>
+        </section>
+        {{/if}}
         {{#if tagChips.length}}
         <section class="fml-sidebar-section">
           <div class="fml-tag-filters">
@@ -96,29 +116,43 @@
           {{/each}}
         </ul>
         {{else}}
-        <p class="fml-empty">{{localize "FML.Library.EmptyPlaylistTracks"}}</p>
+        <div class="fml-playlist-drop-zone fml-empty">
+          <p>{{localize "FML.Library.EmptyPlaylistTracks"}}</p>
+          <p class="fml-hint">{{localize "FML.Library.DragTracksHint"}}</p>
+        </div>
         {{/if}}
       </section>
       {{/if}}
       <section class="fml-track-panel">
         <h3>{{localize "FML.Library.AllTracks"}}</h3>
         <div class="fml-track-toolbar">
-          <div class="fml-search-wrap">
-            <i class="fa-solid fa-search"></i>
-            <input type="search" name="filterQuery" value="{{filterQuery}}" placeholder="{{localize "FML.Library.Search"}}" />
+          {{#if hasSelection}}
+          <div class="fml-bulk-toolbar">
+            <button type="button" data-action="bulkEditMetadata"><i class="fa-solid fa-pen-to-square"></i> {{localize "FML.Bulk.EditButton"}} ({{selectionCount}})</button>
+            <button type="button" data-action="selectAllVisible">{{localize "FML.Bulk.SelectVisible"}}</button>
+            <button type="button" data-action="clearSelection">{{localize "FML.Bulk.ClearSelection"}}</button>
           </div>
-          <div class="fml-track-sort">
-            <select name="sortBy" aria-label="{{localize "FML.Library.SortBy"}}">
-              {{#each sortOptions}}
-              <option value="{{key}}" {{#if (eq ../sortBy key)}}selected{{/if}}>{{label}}</option>
-              {{/each}}
-            </select>
-            <button type="button" class="fml-sort-dir-btn" data-action="toggleSortDir" title="{{sortDir}}">
-              <i class="fa-solid fa-arrow-{{sortDirIcon}}"></i>
-            </button>
+          {{/if}}
+          <div class="fml-track-toolbar-row">
+            <div class="fml-search-wrap">
+              <i class="fa-solid fa-search"></i>
+              <input type="search" name="filterQuery" value="{{filterQuery}}" placeholder="{{localize "FML.Library.Search"}}" />
+            </div>
+            <div class="fml-track-sort">
+              <select name="sortBy" aria-label="{{localize "FML.Library.SortBy"}}">
+                {{#each sortOptions}}
+                <option value="{{key}}" {{#if (eq ../sortBy key)}}selected{{/if}}>{{label}}</option>
+                {{/each}}
+              </select>
+              <button type="button" class="fml-sort-dir-btn" data-action="toggleSortDir" title="{{sortDir}}">
+                <i class="fa-solid fa-arrow-{{sortDirIcon}}"></i>
+              </button>
+            </div>
           </div>
         </div>
         <div class="fml-track-header">
+          <span class="fml-col-drag"></span>
+          <span class="fml-col-select" title="{{localize "FML.Bulk.SelectTrack"}}"></span>
           <span class="fml-col-favorite"></span>
           <span>{{localize "FML.Track.Title"}}</span>
           <span>{{localize "FML.Track.Artist"}}</span>
@@ -132,7 +166,9 @@
           <div class="fml-virtual-spacer" style="height: {{virtualHeight}}px"></div>
           <div class="fml-virtual-window" style="transform: translateY({{virtualOffset}}px)">
             {{#each visibleTracks}}
-            <div class="fml-track-row{{#if previewing}} fml-track-row--previewing{{/if}}{{#if missing}} missing{{/if}}" data-path="{{path}}" data-context-menu="track">
+            <div class="fml-track-row{{#if previewing}} fml-track-row--previewing{{/if}}{{#if missing}} missing{{/if}}{{#if selected}} fml-track-row--selected{{/if}}" data-path="{{path}}" data-context-menu="track" draggable="true">
+              <span class="fml-drag-handle" title="{{localize "FML.Library.DragToPlaylist"}}"><i class="fa-solid fa-grip-vertical"></i></span>
+              <input type="checkbox" class="fml-track-select" data-action="toggleTrackSelect" data-path="{{path}}" {{#if selected}}checked{{/if}} title="{{localize "FML.Bulk.SelectTrack"}}" />
               <button type="button" class="fml-favorite-btn {{#if favorite}}active{{/if}}" data-action="toggleFavorite" data-path="{{path}}" title="{{localize "FML.Library.ToggleFavorite"}}"><i class="fa-solid fa-star"></i></button>
               <span class="title">{{title}}</span>
               <span class="artist">{{artist}}</span>

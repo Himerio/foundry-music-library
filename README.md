@@ -36,15 +36,18 @@ Enable the module in your world (no specific game system required).
 - **Playlists** in the module sync to Foundry playlists prefixed with `[Music]`
 - **Music Player** (GM Player): floating window for session playback — open from the library toolbar or it reopens on load if you left it open
 
-### Music Library (v0.2)
+### Music Library
 
 - **Upload** toolbar button or drag MP3 files onto the library window (duplicates skipped); the track list panel highlights while dragging
 - **Playlist order**: drag tracks in the playlist panel (grip handle); syncs to Foundry
-- **Tag chips** in the sidebar filter the track list (tags from metadata editor)
+- **Add to playlist**: drag tracks from **All Tracks** onto a playlist in the sidebar or into the playlist track list
+- **Tag chips** and **artist chips** in the sidebar filter the track list (OR within each group)
+- **Missing metadata** filter for tracks without title or artist
 - **Favorites** (per-user): star on tracks; **Favorites** filter in the sidebar
+- **Bulk metadata edit**: select tracks (checkbox or Shift+click range), then **Bulk edit**
 - **Play Preview** from the track context menu (with stop control and row highlight)
 
-### Music Player controls
+### Music Player controls (v0.3)
 
 | Button | What it does |
 | --- | --- |
@@ -52,8 +55,9 @@ Enable the module in your world (no specific game system required).
 | Previous / Next | Skip backward or forward in the playlist |
 | Play / Stop | **Play** starts the playlist (other module playlists stop first). While playing, the same control becomes **Stop** (full stop, not pause) |
 | Mode (⇅ / 🔀) | Toggle **Sequential** vs **Shuffle** on the Foundry playlist |
-| Volume | Adjusts volume for all tracks in the active playlist (full mode) |
-| Compact | Frameless minimal player; position and layout are remembered |
+| Volume | Adjusts volume for all tracks in the active playlist (full and compact) |
+| Progress | Bar and `elapsed / total` timer while a track is playing (full and compact) |
+| Compact | Frameless minimal player with progress and volume; position remembered |
 | × (Hide) | Close the player; position is remembered |
 
 **Now playing** uses your library metadata (title) when available.
@@ -70,9 +74,17 @@ npm run release:zip   # build dist/ for GitHub release
 
 Metadata is read from ID3 tags in the browser (no changes to files on disk). Overrides are stored in world settings.
 
+### Theming
+
+UI styles use shared tokens in `styles/fml-tokens.css` (spacing, borders, surfaces) mapped to Foundry v13 CSS variables (`--color-bg-*`, `--color-text-*`, `--font-size-*`) for consistent light/dark appearance.
+
 ## Version
 
-**0.2.0** — playlist DnD reorder, MP3 upload, tag filters, favorites, compact player, preview playback UI.
+**0.3.1** — unified design tokens and CSS consistency pass.
+
+**0.3.0** — library→playlist drag, bulk metadata, artist/missing filters, GM player progress bar (full + compact).
+
+**0.2.x** — playlist DnD reorder, MP3 upload, tag filters, favorites, compact player, preview playback UI.
 
 ## Links
 

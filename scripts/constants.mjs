@@ -22,7 +22,9 @@ export const SETTING_KEYS = {
   ACTIVE_MODULE_PLAYLIST_ID: 'activeModulePlaylistId',
   ACTIVE_TAGS: 'activeTags',
   FAVORITE_PATHS: 'favoritePaths',
-  FAVORITES_ONLY: 'favoritesOnly'
+  FAVORITES_ONLY: 'favoritesOnly',
+  ACTIVE_ARTISTS: 'activeArtists',
+  MISSING_METADATA_ONLY: 'missingMetadataOnly'
 }
 
 export const SORT_OPTIONS = [

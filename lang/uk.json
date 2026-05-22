@@ -61,7 +61,31 @@
       "FilterTags": "Теги",
       "ClearTags": "Скинути",
       "FavoritesOnly": "Обране",
-      "ToggleFavorite": "Додати / прибрати з обраного"
+      "ToggleFavorite": "Додати / прибрати з обраного",
+      "FilterArtists": "Виконавці",
+      "ClearArtists": "Скинути",
+      "MissingMetadataOnly": "Без метаданих",
+      "DragTracksHint": "Перетягніть треки з «Усі треки» сюди або на плейлист у бічній панелі.",
+      "DragToPlaylist": "Перетягніть, щоб додати до плейлиста",
+      "TrackAddedToPlaylist": "Трек додано до плейлиста."
+    },
+    "Bulk": {
+      "Title": "Масове редагування метаданих",
+      "Summary": "Редагування {count} трек(ів).",
+      "ApplyField": "Застосувати {field}",
+      "LeaveEmptyClear": "Порожнє поле — очистити",
+      "TagsReplace": "Замінити теги",
+      "TagsMerge": "Додати теги",
+      "TagsClear": "Очистити всі теги",
+      "NothingSelected": "Оберіть хоча б одне поле для застосування.",
+      "Saved": "Оновлено метадані для {count} трек(ів).",
+      "EditButton": "Масове редагування",
+      "EditContext": "Масове редагування ({count})",
+      "SelectVisible": "Видимі рядки",
+      "ClearSelection": "Скинути вибір",
+      "SelectTrack": "Вибрати трек",
+      "TrackColumn": "Трек",
+      "TagsModeLabel": "Режим тегів (якщо увімкнено «Застосувати теги»)"
     },
     "Track": {
       "Title": "Назва",
@@ -109,7 +133,8 @@
       "TrackList": "Треки",
       "PlayTrack": "Грати цей трек",
       "TrackNotAvailable": "Трек недоступний у синхронізованому плейлисті Foundry.",
-      "PlaylistNotSynced": "Не вдалося знайти або синхронізувати плейлист Foundry. Відкрийте Music Library і переконайтесь, що в плейлисті є треки."
+      "PlaylistNotSynced": "Не вдалося знайти або синхронізувати плейлист Foundry. Відкрийте Music Library і переконайтесь, що в плейлисті є треки.",
+      "ProgressTime": "Позиція відтворення"
     },
     "Import": {
       "Title": "Імпорт Music Library",

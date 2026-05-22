@@ -29,8 +29,10 @@ export async function openMetadataEditor(path, onSaved) {
   )
 
   const submit = async (_event, button) => {
-    const form = button.form ?? document.querySelector('.fml-metadata-editor')
-    const fd = new FormDataExtended(form)
+    const form = button.form
+    const root = form?.querySelector('.fml-metadata-editor')
+    if (!form || !root) return
+    const fd = new FormDataExtended(form) // DialogV2 wrapper form
     const tagsRaw = fd.get('tags')?.toString() ?? ''
     const tags = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean)
     await updateTrackOverride(path, {
@@ -72,7 +74,9 @@ export async function openMetadataEditor(path, onSaved) {
         save: {
           label: game.i18n.localize('FML.Common.Save'),
           callback: async (html) => {
-            const form = html[0]?.querySelector('form')
+            const root = html[0]?.querySelector('.fml-metadata-editor')
+            const form = root?.closest('form') ?? root
+            if (!form) return
             const fd = new FormDataExtended(form)
             const tagsRaw = fd.get('tags')?.toString() ?? ''
             const tags = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean)

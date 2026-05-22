@@ -7,7 +7,13 @@ import {
   VIRTUAL_OVERSCAN
 } from '../constants.mjs'
 import { canManageMusicLibrary } from '../utils/permissions.mjs'
-import { scanMusicLibrary, getTrackIndex, getSortedTracks, collectTagChips } from '../services/index-service.mjs'
+import {
+  scanMusicLibrary,
+  getTrackIndex,
+  getSortedTracks,
+  collectTagChips,
+  collectArtistChips
+} from '../services/index-service.mjs'
 import { uploadMp3Files } from '../services/upload-service.mjs'
 import * as favoriteStore from '../services/favorite-store.mjs'
 import * as playlistStore from '../services/playlist-store.mjs'
@@ -22,6 +28,7 @@ import {
 } from '../services/track-display.mjs'
 import { getTrackUrl } from '../services/paths.mjs'
 import { openMetadataEditor } from './metadata-editor-app.mjs'
+import { openBulkMetadataEditor } from './bulk-metadata-editor-app.mjs'
 import { GmPlaybackWidget, refreshGmPlaybackWidget } from './gm-playback-widget.mjs'
 import { promptPlaylistName } from './playlist-name-dialog.mjs'
 
@@ -32,6 +39,8 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     super(options)
     this.selectedPlaylistId = options.selectedPlaylistId ?? ''
     this.scrollTop = 0
+    this._playlistPanelScrollTop = 0
+    this._playlistPanelScroller = null
     this._filterQuery = undefined
     this._filterRenderTimer = null
     this._filterPersistTimer = null
@@ -41,6 +50,10 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._virtualScrollRaf = null
     this._previewPath = null
     this._previewAudio = null
+    this._selectedPaths = new Set()
+    this._selectionAnchor = null
+    /** @type {{ type: string, path: string, playlistId?: string } | null} */
+    this._activeDragPayload = null
     this._onTrackScroll = () => {
       const scroller = this._trackScroller
       if (!scroller || !this._virtualTrackList.length) return
@@ -53,6 +66,15 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
         this._patchVirtualScroll().catch((e) => console.error('FML | Virtual scroll update failed', e))
       })
     }
+    this._onPlaylistPanelScroll = () => {
+      const panel = this._playlistPanelScroller
+      if (panel) this._playlistPanelScrollTop = panel.scrollTop
+    }
+  }
+
+  async render(force = false, options = {}) {
+    this._savePlaylistPanelScroll()
+    return super.render(force, options)
   }
 
   static DEFAULT_OPTIONS = {
@@ -64,7 +86,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       icon: 'fa-solid fa-music',
       resizable: true
     },
-    position: { width: 960, height: 640 },
+    position: { width: 960, height: 800 },
     actions: {
       scan: MusicLibraryApp.onScan,
       rescan: MusicLibraryApp.onRescan,
@@ -86,6 +108,13 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       toggleTagFilter: MusicLibraryApp.onToggleTagFilter,
       clearTagFilter: MusicLibraryApp.onClearTagFilter,
       toggleFavoritesFilter: MusicLibraryApp.onToggleFavoritesFilter,
+      toggleArtistFilter: MusicLibraryApp.onToggleArtistFilter,
+      clearArtistFilter: MusicLibraryApp.onClearArtistFilter,
+      toggleMissingMetadataFilter: MusicLibraryApp.onToggleMissingMetadataFilter,
+      toggleTrackSelect: MusicLibraryApp.onToggleTrackSelect,
+      selectAllVisible: MusicLibraryApp.onSelectAllVisible,
+      clearSelection: MusicLibraryApp.onClearSelection,
+      bulkEditMetadata: MusicLibraryApp.onBulkEditMetadata,
       trackScroll: MusicLibraryApp.onTrackScroll,
       togglePreview: MusicLibraryApp.onTogglePreview,
       stopPreview: MusicLibraryApp.onStopPreview
@@ -123,10 +152,14 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     const filterQuery = this._filterQuery
     const activeTags = game.settings.get(MODULE_ID, SETTING_KEYS.ACTIVE_TAGS) ?? []
+    const activeArtists = game.settings.get(MODULE_ID, SETTING_KEYS.ACTIVE_ARTISTS) ?? []
     const favoritesOnly = game.settings.get(MODULE_ID, SETTING_KEYS.FAVORITES_ONLY) ?? false
+    const missingMetadataOnly = game.settings.get(MODULE_ID, SETTING_KEYS.MISSING_METADATA_ONLY) ?? false
     const allTracks = getSortedTracks(sortBy, sortDir, filterQuery, {
       tagFilter: activeTags,
-      favoriteOnly: favoritesOnly
+      artistFilter: activeArtists,
+      favoriteOnly: favoritesOnly,
+      missingMetadataOnly
     })
     const index = getTrackIndex()
     const missingCount = Object.values(index).filter((t) => t.missing).length
@@ -172,6 +205,13 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       active: activeTags.includes(tag)
     }))
 
+    const artistChips = collectArtistChips().map((artist) => ({
+      artist,
+      active: activeArtists.includes(artist)
+    }))
+
+    const selectionCount = this._selectedPaths.size
+
     const sortLabels = {
       title: game.i18n.localize('FML.Track.Title'),
       artist: game.i18n.localize('FML.Track.Artist'),
@@ -200,8 +240,13 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       virtualHeight: virtual.virtualHeight,
       virtualOffset: virtual.virtualOffset,
       activeTags,
+      activeArtists,
       favoritesOnly,
+      missingMetadataOnly,
       tagChips,
+      artistChips,
+      selectionCount,
+      hasSelection: selectionCount > 0,
       previewTrack
     }
   }
@@ -210,13 +255,53 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     super._onRender(context, options)
     this._bindContextMenus()
     this._bindPlaylistDragDrop()
+    this._bindLibraryDragDrop()
     this._bindUploadDropzone()
     this._bindUploadInput()
     this._bindKeyboard()
     this._bindSortSelect()
     this._bindFilterInput()
     this._bindVirtualScroll()
+    this._bindPlaylistPanelScroll()
+    this._bindTrackSelection()
     this._syncScrollerScrollTop()
+    this._syncPlaylistPanelScrollTop()
+  }
+
+  _bindTrackSelection() {
+    const panel = this.element?.querySelector('.fml-track-panel')
+    if (!panel || panel.dataset.fmlSelBound) return
+    panel.dataset.fmlSelBound = '1'
+
+    panel.addEventListener('click', (event) => {
+      const checkbox = event.target.closest('.fml-track-select[data-path]')
+      if (!checkbox) return
+      if (event.shiftKey) {
+        event.preventDefault()
+        this._toggleRangeSelection(checkbox.dataset.path)
+        this.render(false)
+        return
+      }
+      this._selectionAnchor = checkbox.dataset.path
+    })
+  }
+
+  _toggleRangeSelection(path) {
+    const anchor = this._selectionAnchor ?? path
+    const paths = this._virtualTrackList.map((t) => t.path)
+    const a = paths.indexOf(anchor)
+    const b = paths.indexOf(path)
+    if (a < 0 || b < 0) {
+      this._togglePathSelection(path)
+      return
+    }
+    const [from, to] = a < b ? [a, b] : [b, a]
+    for (let i = from; i <= to; i++) this._selectedPaths.add(paths[i])
+  }
+
+  _togglePathSelection(path) {
+    if (this._selectedPaths.has(path)) this._selectedPaths.delete(path)
+    else this._selectedPaths.add(path)
   }
 
   _getVirtualStartIdx(scrollTop) {
@@ -237,7 +322,8 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       duration: formatDuration(t.detected?.duration),
       missing: t.missing,
       favorite: favoriteStore.isFavorite(t.path),
-      previewing: previewPath === t.path
+      previewing: previewPath === t.path,
+      selected: this._selectedPaths.has(t.path)
     }))
 
     return {
@@ -299,6 +385,35 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._trackScroller = null
   }
 
+  _savePlaylistPanelScroll() {
+    const panel = this._playlistPanelScroller ?? this.element?.querySelector('.fml-playlist-panel')
+    if (panel) this._playlistPanelScrollTop = panel.scrollTop
+  }
+
+  _bindPlaylistPanelScroll() {
+    const panel = this.element?.querySelector('.fml-playlist-panel')
+    if (!panel || panel === this._playlistPanelScroller) return
+    this._unbindPlaylistPanelScroll()
+    this._playlistPanelScroller = panel
+    panel.addEventListener('scroll', this._onPlaylistPanelScroll, { passive: true })
+  }
+
+  _syncPlaylistPanelScrollTop() {
+    const panel = this._playlistPanelScroller ?? this.element?.querySelector('.fml-playlist-panel')
+    if (!panel) return
+    if (panel.scrollTop !== this._playlistPanelScrollTop) {
+      panel.scrollTop = this._playlistPanelScrollTop
+    }
+    this._playlistPanelScroller = panel
+  }
+
+  _unbindPlaylistPanelScroll() {
+    if (this._playlistPanelScroller) {
+      this._playlistPanelScroller.removeEventListener('scroll', this._onPlaylistPanelScroll)
+    }
+    this._playlistPanelScroller = null
+  }
+
   async close(options = {}) {
     this._stopPreview({ render: false })
     clearTimeout(this._filterRenderTimer)
@@ -306,6 +421,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this._virtualScrollRaf) cancelAnimationFrame(this._virtualScrollRaf)
     this._virtualScrollRaf = null
     this._unbindVirtualScroll()
+    this._unbindPlaylistPanelScroll()
     if (this._filterQuery !== undefined) {
       const stored = game.settings.get(MODULE_ID, SETTING_KEYS.FILTER_QUERY) ?? ''
       if (this._filterQuery !== stored) {
@@ -360,6 +476,13 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
         icon: '<i class="fa-solid fa-pen"></i>',
         callback: () => openMetadataEditor(path, () => this.render(false))
       },
+      ...(this._selectedPaths.size >= 1
+        ? [{
+          name: game.i18n.format('FML.Bulk.EditContext', { count: this._selectedPaths.size }),
+          icon: '<i class="fa-solid fa-pen-to-square"></i>',
+          callback: () => openBulkMetadataEditor([...this._selectedPaths], () => this.render(false))
+        }]
+        : []),
       {
         name: game.i18n.localize('FML.Track.CopyFilename'),
         icon: '<i class="fa-solid fa-copy"></i>',
@@ -443,72 +566,208 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     })
   }
 
+  _parseDragPayload(event) {
+    try {
+      const raw = event.dataTransfer.getData('text/plain')
+      if (!raw) return this._activeDragPayload
+      return JSON.parse(raw)
+    } catch {
+      return this._activeDragPayload
+    }
+  }
+
+  _setDragPayload(event, payload) {
+    const json = JSON.stringify(payload)
+    event.dataTransfer.effectAllowed = payload.type === 'fml-library-track' ? 'copy' : 'move'
+    event.dataTransfer.setData('text/plain', json)
+    this._activeDragPayload = payload
+  }
+
+  _clearDragState() {
+    this._activeDragPayload = null
+    this._clearLibraryDropTargets()
+  }
+
+  _dropEffectForDrag() {
+    return this._activeDragPayload?.type === 'fml-library-track' ? 'copy' : 'move'
+  }
+
+  _clearLibraryDropTargets() {
+    this.element?.querySelectorAll('.fml-drop-target, .drop-target').forEach((el) => {
+      el.classList.remove('fml-drop-target', 'drop-target')
+    })
+  }
+
+  async _dropLibraryTrackOnPlaylist(playlistId, trackPath, insertIndex) {
+    if (!playlistId || !trackPath || !canManageMusicLibrary()) return
+    const pl = playlistStore.getPlaylistById(playlistId)
+    if (!pl) return
+    const already = pl.trackPaths.includes(trackPath)
+    await playlistStore.insertTrackIntoPlaylist(playlistId, trackPath, insertIndex)
+    await syncModulePlaylistToFoundry(playlistStore.getPlaylistById(playlistId))
+    if (!already) {
+      ui.notifications.info(game.i18n.localize('FML.Library.TrackAddedToPlaylist'))
+    }
+    await this.render(false)
+  }
+
+  _bindLibraryDragDrop() {
+    const root = this.element
+    if (!root || root.dataset.fmlLibDndBound) return
+    root.dataset.fmlLibDndBound = '1'
+    const app = this
+
+    root.addEventListener('dragstart', (event) => {
+      if (!canManageMusicLibrary()) return
+      const row = event.target.closest('.fml-track-row[data-path]')
+      if (!row) return
+      if (
+        event.target.closest('button, input, select, a, label')
+        && !event.target.closest('.fml-drag-handle')
+      ) return
+      const path = row.dataset.path
+      app._setDragPayload(event, { type: 'fml-library-track', path })
+      row.classList.add('fml-dragging')
+    })
+
+    root.addEventListener('dragend', () => {
+      root.querySelectorAll('.fml-track-row.fml-dragging').forEach((el) => el.classList.remove('fml-dragging'))
+      app._clearDragState()
+    })
+
+    const sidebar = root.querySelector('.fml-playlist-list')
+    if (sidebar && !sidebar.dataset.fmlSidebarDndBound) {
+      sidebar.dataset.fmlSidebarDndBound = '1'
+
+      sidebar.addEventListener('dragover', (event) => {
+        if (app._activeDragPayload?.type !== 'fml-library-track') return
+        const item = event.target.closest('.fml-playlist-item')
+        if (!item) return
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'copy'
+        app._clearLibraryDropTargets()
+        item.classList.add('fml-drop-target')
+      })
+
+      sidebar.addEventListener('dragleave', (event) => {
+        const item = event.target.closest('.fml-playlist-item')
+        if (item && !item.contains(event.relatedTarget)) item.classList.remove('fml-drop-target')
+      })
+
+      sidebar.addEventListener('drop', async (event) => {
+        event.preventDefault()
+        app._clearDragState()
+        if (!canManageMusicLibrary()) return
+        const item = event.target.closest('.fml-playlist-item')
+        const btn = item?.querySelector('button[data-playlist-id]')
+        const data = app._parseDragPayload(event)
+        if (!btn || data?.type !== 'fml-library-track') return
+        await app._dropLibraryTrackOnPlaylist(btn.dataset.playlistId, data.path)
+      })
+    }
+  }
+
   _bindPlaylistDragDrop() {
     const panel = this.element?.querySelector('.fml-playlist-panel')
     if (!panel || !this.selectedPlaylistId) return
 
     const list = panel.querySelector('.fml-playlist-tracks')
-    if (!list || list.dataset.fmlDndBound) return
-    list.dataset.fmlDndBound = '1'
-
-    const app = this
     const playlistId = this.selectedPlaylistId
+    const app = this
 
     const clearDropStyles = () => {
-      list.querySelectorAll('.drop-target').forEach((el) => el.classList.remove('drop-target'))
+      list?.querySelectorAll('.drop-target').forEach((el) => el.classList.remove('drop-target'))
+      panel.querySelectorAll('.fml-playlist-drop-zone.fml-drop-target').forEach((el) => {
+        el.classList.remove('fml-drop-target')
+      })
     }
+
+    const emptyZone = panel.querySelector('.fml-playlist-drop-zone')
+    if (emptyZone && !emptyZone.dataset.fmlDndBound) {
+      emptyZone.dataset.fmlDndBound = '1'
+      emptyZone.addEventListener('dragover', (event) => {
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'copy'
+        emptyZone.classList.add('fml-drop-target')
+      })
+      emptyZone.addEventListener('dragleave', (event) => {
+        if (!emptyZone.contains(event.relatedTarget)) emptyZone.classList.remove('fml-drop-target')
+      })
+      emptyZone.addEventListener('drop', async (event) => {
+        event.preventDefault()
+        clearDropStyles()
+        app._clearDragState()
+        const data = app._parseDragPayload(event)
+        if (data?.type !== 'fml-library-track') return
+        await app._dropLibraryTrackOnPlaylist(playlistId, data.path)
+      })
+    }
+
+    if (!list || list.dataset.fmlDndBound) {
+      if (!list) return
+      return
+    }
+    list.dataset.fmlDndBound = '1'
 
     list.addEventListener('dragstart', (event) => {
       if (!canManageMusicLibrary()) return
       const li = event.target.closest('li[data-path]')
-      if (!li) return
+      if (!li || event.target.closest('button, input, select, a')) return
       const path = li.dataset.path
-      event.dataTransfer.effectAllowed = 'move'
-      event.dataTransfer.setData('text/plain', JSON.stringify({
-        type: 'fml-playlist-track',
-        path,
-        playlistId
-      }))
+      app._setDragPayload(event, { type: 'fml-playlist-track', path, playlistId })
       li.classList.add('dragging')
     })
 
     list.addEventListener('dragend', (event) => {
       event.target.closest('li[data-path]')?.classList.remove('dragging')
+      app._clearDragState()
       clearDropStyles()
     })
 
     list.addEventListener('dragover', (event) => {
+      const isLibraryDrag = app._activeDragPayload?.type === 'fml-library-track'
       const li = event.target.closest('li[data-path]')
-      if (!li) return
+      if (!isLibraryDrag && !li) return
       event.preventDefault()
-      event.dataTransfer.dropEffect = 'move'
+      event.dataTransfer.dropEffect = app._dropEffectForDrag()
       clearDropStyles()
-      li.classList.add('drop-target')
+      if (li) li.classList.add('drop-target')
+      else list.classList.add('fml-drop-target')
     })
 
     list.addEventListener('dragleave', (event) => {
       const li = event.target.closest('li[data-path]')
       if (li && !li.contains(event.relatedTarget)) li.classList.remove('drop-target')
+      if (!list.contains(event.relatedTarget)) list.classList.remove('fml-drop-target')
     })
 
     list.addEventListener('drop', async (event) => {
       event.preventDefault()
       clearDropStyles()
+      app._clearDragState()
       if (!canManageMusicLibrary()) return
 
-      let data
-      try {
-        data = JSON.parse(event.dataTransfer.getData('text/plain'))
-      } catch {
-        return
-      }
-      if (data?.type !== 'fml-playlist-track' || data.playlistId !== playlistId) return
-
-      const targetLi = event.target.closest('li[data-path]')
-      if (!targetLi) return
+      const data = app._parseDragPayload(event)
+      if (!data) return
 
       const pl = playlistStore.getPlaylistById(playlistId)
       if (!pl) return
+
+      if (data.type === 'fml-library-track') {
+        const targetLi = event.target.closest('li[data-path]')
+        let insertIndex = pl.trackPaths.length
+        if (targetLi) {
+          const idx = pl.trackPaths.indexOf(targetLi.dataset.path)
+          if (idx >= 0) insertIndex = idx
+        }
+        await app._dropLibraryTrackOnPlaylist(playlistId, data.path, insertIndex)
+        return
+      }
+
+      if (data.type !== 'fml-playlist-track' || data.playlistId !== playlistId) return
+
+      const targetLi = event.target.closest('li[data-path]')
+      if (!targetLi) return
 
       const fromIndex = pl.trackPaths.indexOf(data.path)
       const targetIndex = pl.trackPaths.indexOf(targetLi.dataset.path)
@@ -760,6 +1019,69 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await this.render(false)
   }
 
+  static async onToggleArtistFilter(event, target) {
+    const artist = target.dataset?.artist
+    if (!artist) return
+    const active = [...(game.settings.get(MODULE_ID, SETTING_KEYS.ACTIVE_ARTISTS) ?? [])]
+    const idx = active.indexOf(artist)
+    if (idx >= 0) active.splice(idx, 1)
+    else active.push(artist)
+    await game.settings.set(MODULE_ID, SETTING_KEYS.ACTIVE_ARTISTS, active)
+    this.scrollTop = 0
+    this._resetVirtualScrollAnchor()
+    await this.render(false)
+  }
+
+  static async onClearArtistFilter() {
+    await game.settings.set(MODULE_ID, SETTING_KEYS.ACTIVE_ARTISTS, [])
+    this.scrollTop = 0
+    this._resetVirtualScrollAnchor()
+    await this.render(false)
+  }
+
+  static async onToggleMissingMetadataFilter() {
+    const cur = game.settings.get(MODULE_ID, SETTING_KEYS.MISSING_METADATA_ONLY) ?? false
+    await game.settings.set(MODULE_ID, SETTING_KEYS.MISSING_METADATA_ONLY, !cur)
+    this.scrollTop = 0
+    this._resetVirtualScrollAnchor()
+    await this.render(false)
+  }
+
+  static onToggleTrackSelect(event, target) {
+    const path = MusicLibraryApp._pathFromActionTarget(target)
+    if (!path) return
+    if (event.shiftKey) {
+      event.preventDefault()
+      this._toggleRangeSelection(path)
+    } else {
+      if (target.checked) this._selectedPaths.add(path)
+      else this._selectedPaths.delete(path)
+      this._selectionAnchor = path
+    }
+    this.render(false)
+  }
+
+  static onSelectAllVisible() {
+    const virtual = this._computeVirtualWindow(
+      this._virtualTrackList,
+      this.scrollTop,
+      this._trackScroller?.clientHeight
+    )
+    for (const row of virtual.visibleTracks) this._selectedPaths.add(row.path)
+    this.render(false)
+  }
+
+  static onClearSelection() {
+    this._selectedPaths.clear()
+    this._selectionAnchor = null
+    this.render(false)
+  }
+
+  static onBulkEditMetadata() {
+    if (!this._selectedPaths.size) return
+    openBulkMetadataEditor([...this._selectedPaths], () => this.render(false))
+  }
+
   static async onNewPlaylist() {
     const app = this
     const name = await promptPlaylistName({
@@ -776,11 +1098,13 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static onSelectLibrary() {
     this.selectedPlaylistId = ''
+    this._playlistPanelScrollTop = 0
     this.render(false)
   }
 
   static onSelectPlaylist(event, target) {
     this.selectedPlaylistId = target.closest('[data-playlist-id]')?.dataset?.playlistId ?? ''
+    this._playlistPanelScrollTop = 0
     this.render(false)
   }
 

@@ -1,0 +1,61 @@
+/**
+ * Foundry Music Library — shared design tokens (v13).
+ * Loaded before component styles. Surfaces use color-mix on --color-text-primary
+ * so light/dark themes follow Foundry without duplicate body.theme-light rules.
+ */
+.application.fml-music-library-app,
+.fml-library,
+.application.fml-gm-widget,
+.fml-widget,
+.application.fml-bulk-metadata-dialog {
+  /* Borders */
+  --fml-border-divider: var(
+    --color-border-light-1,
+    var(--color-border-light-2, color-mix(in srgb, var(--color-text-primary, #c8c8c8) 16%, transparent))
+  );
+  --fml-border-focus: var(--color-text-hyperlink, var(--color-text-emphatic, #4a9eff));
+
+  /* Spacing (4px base) */
+  --fml-space-1: 0.25rem;
+  --fml-space-2: 0.5rem;
+  --fml-space-3: 0.75rem;
+  --fml-space-4: 1rem;
+
+  /* Radius */
+  --fml-radius-sm: 4px;
+  --fml-radius-md: 6px;
+
+  /* Surfaces — tuned for Foundry’s tinted app backgrounds */
+  --fml-surface-subtle: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 10%, transparent);
+  --fml-surface-hover: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 14%, transparent);
+  --fml-surface-raised: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 18%, transparent);
+  --fml-surface-preview: color-mix(in srgb, var(--fml-border-focus, #6bb3ff) 22%, transparent);
+  --fml-surface-active: color-mix(in srgb, var(--fml-border-focus, #6bb3ff) 20%, transparent);
+  --fml-surface-selected: color-mix(in srgb, var(--fml-border-focus, #6bb3ff) 12%, transparent);
+  --fml-surface-warning: color-mix(
+    in srgb,
+    var(--color-level-warning, #fa0) 18%,
+    transparent
+  );
+  --fml-surface-upload: color-mix(in srgb, var(--fml-border-focus, #569cd6) 50%, transparent);
+
+  /* Semantic text */
+  --fml-text-muted: color-mix(in srgb, var(--color-text-primary, #c8c8c8) 70%, transparent);
+  --fml-text-danger: var(--color-level-error, #e66);
+  --fml-text-favorite: var(--color-level-warning, #e6b422);
+}
+
+/* Light theme: darker overlays read better on pale panels */
+body.theme-light .application.fml-music-library-app,
+body.theme-light .fml-library,
+body.theme-light .application.fml-gm-widget,
+body.theme-light .fml-widget {
+  --fml-border-divider: var(
+    --color-border-light-1,
+    var(--color-border-light-2, color-mix(in srgb, var(--color-text-primary, #1a1a1a) 14%, transparent))
+  );
+  --fml-surface-hover: color-mix(in srgb, var(--color-text-primary, #1a1a1a) 8%, transparent);
+  --fml-surface-raised: color-mix(in srgb, var(--color-text-primary, #1a1a1a) 11%, transparent);
+  --fml-surface-preview: color-mix(in srgb, var(--fml-border-focus, #2563eb) 16%, transparent);
+  --fml-surface-active: color-mix(in srgb, var(--fml-border-focus, #2563eb) 14%, transparent);
+}

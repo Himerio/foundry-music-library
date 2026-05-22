@@ -1,7 +1,9 @@
 <div class="fml-virtual-spacer" style="height: {{virtualHeight}}px"></div>
 <div class="fml-virtual-window" style="transform: translateY({{virtualOffset}}px)">
   {{#each visibleTracks}}
-  <div class="fml-track-row{{#if previewing}} fml-track-row--previewing{{/if}}{{#if missing}} missing{{/if}}" data-path="{{path}}" data-context-menu="track">
+  <div class="fml-track-row{{#if previewing}} fml-track-row--previewing{{/if}}{{#if missing}} missing{{/if}}{{#if selected}} fml-track-row--selected{{/if}}" data-path="{{path}}" data-context-menu="track" draggable="true">
+    <span class="fml-drag-handle" title="{{localize "FML.Library.DragToPlaylist"}}"><i class="fa-solid fa-grip-vertical"></i></span>
+    <input type="checkbox" class="fml-track-select" data-action="toggleTrackSelect" data-path="{{path}}" {{#if selected}}checked{{/if}} title="{{localize "FML.Bulk.SelectTrack"}}" />
     <button type="button" class="fml-favorite-btn {{#if favorite}}active{{/if}}" data-action="toggleFavorite" data-path="{{path}}" title="{{localize "FML.Library.ToggleFavorite"}}"><i class="fa-solid fa-star"></i></button>
     <span class="title">{{title}}</span>
     <span class="artist">{{artist}}</span>

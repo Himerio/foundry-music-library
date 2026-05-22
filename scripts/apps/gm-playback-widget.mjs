@@ -14,6 +14,11 @@ import {
 } from '../services/playback-control.mjs'
 import { formatDuration, getDisplayLine, stripFoundrySortPrefix } from '../services/track-display.mjs'
 import { getTrack } from '../services/index-service.mjs'
+import {
+  formatProgressLabel,
+  getPlaybackTimes,
+  getTrackDurationSeconds
+} from '../services/playback-progress.mjs'
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 
@@ -21,6 +26,7 @@ const WIDGET_WIDTH_FULL = 520
 const WIDGET_WIDTH_FULL_MIN = 480
 const WIDGET_WIDTH_COMPACT = 240
 const COMPACT_IDLE_MS = 2000
+const PROGRESS_TICK_MS = 250
 
 export async function refreshGmPlaybackWidget() {
   const widget = foundry.applications.instances?.get('fml-gm-widget')
@@ -86,16 +92,19 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     }
     const playingSound = this._getPlayingSound(foundryPl)
     let nowPlaying = game.i18n.localize('FML.Widget.NothingPlaying')
+    let progressTrack = null
     if (playingSound) {
       const trackPath = modulePl?.trackPaths?.find((p) => {
         const media = p.replace(/^\//, '')
         return playingSound.path?.replace(/^\//, '') === media
       })
-      const track = trackPath ? getTrack(trackPath) : null
-      nowPlaying = track
-        ? getDisplayLine(track)
+      progressTrack = trackPath ? getTrack(trackPath) : null
+      nowPlaying = progressTrack
+        ? getDisplayLine(progressTrack)
         : stripFoundrySortPrefix(playingSound.name)
     }
+
+    const progress = await this._resolveProgressState(playingSound, progressTrack)
 
     const isPlaying = Boolean(playingSound)
     const shuffle = isPlaylistShuffle(foundryPl)
@@ -120,7 +129,89 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
       modeIcon: shuffle ? 'fa-shuffle' : 'fa-arrow-down-wide-short',
       modeLabel: shuffle
         ? game.i18n.localize('FML.Widget.ModeShuffle')
-        : game.i18n.localize('FML.Widget.ModeSequential')
+        : game.i18n.localize('FML.Widget.ModeSequential'),
+      showProgress: progress.showProgress,
+      progressPercent: progress.progressPercent,
+      progressLabel: progress.progressLabel
+    }
+  }
+
+  async _resolveProgressState(playingSound, track) {
+    if (!playingSound?.playing) {
+      return { showProgress: false, progressPercent: 0, progressLabel: '0:00 / 0:00' }
+    }
+    const times = await getPlaybackTimes(playingSound, track)
+    const total = times?.total ?? getTrackDurationSeconds(track, playingSound)
+    if (!times && (total == null || total <= 0)) {
+      return { showProgress: false, progressPercent: 0, progressLabel: '0:00 / 0:00' }
+    }
+    const current = times?.current ?? 0
+    const safeTotal = times?.total ?? total ?? 0
+    const percent = times?.percent ?? 0
+    return {
+      showProgress: safeTotal > 0,
+      progressPercent: Math.round(percent),
+      progressLabel: formatProgressLabel(current, safeTotal)
+    }
+  }
+
+  _getProgressTrackForSound(foundryPl, playingSound, modulePl) {
+    if (!playingSound || !modulePl?.trackPaths?.length) return null
+    const trackPath = modulePl.trackPaths.find((p) => {
+      const media = p.replace(/^\//, '')
+      return playingSound.path?.replace(/^\//, '') === media
+    })
+    return trackPath ? getTrack(trackPath) : null
+  }
+
+  async _patchProgressUi() {
+    const activeId = this._getActiveModulePlaylistId()
+    const modulePl = activeId ? playlistStore.getPlaylistById(activeId) : null
+    const foundryPl = activeId ? getFoundryPlaylistForModule(activeId) : null
+    const playingSound = this._getPlayingSound(foundryPl)
+    const track = this._getProgressTrackForSound(foundryPl, playingSound, modulePl)
+    const progress = await this._resolveProgressState(playingSound, track)
+
+    for (const block of this.element?.querySelectorAll('.fml-widget-progress') ?? []) {
+      block.setAttribute('aria-hidden', progress.showProgress ? 'false' : 'true')
+      const trackEl = block.querySelector('.fml-widget-progress-track')
+      const fill = block.querySelector('.fml-widget-progress-fill')
+      const time = block.querySelector('.fml-widget-progress-time')
+      if (trackEl) {
+        trackEl.setAttribute('aria-valuenow', String(progress.progressPercent))
+      }
+      if (fill) fill.style.width = `${progress.progressPercent}%`
+      if (time) time.textContent = progress.progressLabel
+    }
+
+    if (playingSound?.playing) {
+      this._startProgressTicker()
+    } else {
+      this._stopProgressTicker()
+    }
+  }
+
+  _startProgressTicker() {
+    if (this._progressTickerActive) return
+    this._progressTickerActive = true
+    this._progressLastTick = 0
+
+    const tick = (timestamp) => {
+      if (!this._progressTickerActive || !this.rendered) return
+      if (!this._progressLastTick || timestamp - this._progressLastTick >= PROGRESS_TICK_MS) {
+        this._progressLastTick = timestamp
+        this._patchProgressUi().catch((e) => console.error('FML | Progress tick failed', e))
+      }
+      this._progressRafId = requestAnimationFrame(tick)
+    }
+    this._progressRafId = requestAnimationFrame(tick)
+  }
+
+  _stopProgressTicker() {
+    this._progressTickerActive = false
+    if (this._progressRafId != null) {
+      cancelAnimationFrame(this._progressRafId)
+      this._progressRafId = null
     }
   }
 
@@ -144,6 +235,7 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
         this._ensureTrackMarqueeObserver()
       })
     }
+    this._patchProgressUi().catch((e) => console.error('FML | Progress init failed', e))
   }
 
   _syncTrackMarquees() {
@@ -611,6 +703,7 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   async close(options = {}) {
+    this._stopProgressTicker()
     this._trackMarqueeObserver?.disconnect()
     this._trackMarqueeObserver = null
     this._trackMarqueeObservedList = null

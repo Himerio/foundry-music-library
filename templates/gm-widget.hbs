@@ -17,18 +17,24 @@
         {{/unless}}
         <div class="track" title="{{nowPlaying}}">{{nowPlaying}}</div>
       </div>
-      <div class="fml-widget-controls">
-        <button type="button" data-action="prev" title="{{localize "FML.Widget.Previous"}}"><i class="fa-solid fa-backward-step"></i></button>
-        <button type="button" data-action="togglePlay" title="{{playPauseLabel}}"><i class="fa-solid {{playPauseIcon}}"></i></button>
-        <button type="button" data-action="next" title="{{localize "FML.Widget.Next"}}"><i class="fa-solid fa-forward-step"></i></button>
-        <button type="button" data-action="toggleMode" title="{{modeLabel}}"><i class="fa-solid {{modeIcon}}"></i></button>
+      <div class="fml-widget-progress" aria-hidden="{{#unless showProgress}}true{{/unless}}">
+        <div class="fml-widget-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{progressPercent}}">
+          <div class="fml-widget-progress-fill" style="width: {{progressPercent}}%"></div>
+        </div>
+        <span class="fml-widget-progress-time">{{progressLabel}}</span>
       </div>
-      {{#unless compact}}
-      <div class="fml-widget-volume">
-        <label>{{localize "FML.Widget.Volume"}}</label>
-        <input type="range" name="volume" min="0" max="1" step="0.05" value="{{volume}}" title="{{localize "FML.Widget.Volume"}}" />
+      <div class="fml-widget-transport{{#if compact}} fml-widget-transport--compact{{/if}}">
+        <div class="fml-widget-controls">
+          <button type="button" data-action="prev" title="{{localize "FML.Widget.Previous"}}"><i class="fa-solid fa-backward-step"></i></button>
+          <button type="button" data-action="togglePlay" title="{{playPauseLabel}}"><i class="fa-solid {{playPauseIcon}}"></i></button>
+          <button type="button" data-action="next" title="{{localize "FML.Widget.Next"}}"><i class="fa-solid fa-forward-step"></i></button>
+          <button type="button" data-action="toggleMode" title="{{modeLabel}}"><i class="fa-solid {{modeIcon}}"></i></button>
+        </div>
+        <div class="fml-widget-volume{{#if compact}} fml-widget-volume--compact{{/if}}">
+          {{#unless compact}}<label>{{localize "FML.Widget.Volume"}}</label>{{/unless}}
+          <input type="range" name="volume" min="0" max="1" step="0.05" value="{{volume}}" title="{{localize "FML.Widget.Volume"}}" />
+        </div>
       </div>
-      {{/unless}}
     </div>
     {{#if showTrackList}}
     <aside class="fml-widget-tracks">

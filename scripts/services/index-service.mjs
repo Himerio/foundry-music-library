@@ -29,6 +29,62 @@ export async function updateTrackOverride(path, override) {
 }
 
 /**
+ * @param {string[]} paths
+ * @param {Record<string, unknown>} patch
+ * @param {{ tagsMode?: 'replace' | 'merge' | 'clear' }} [options]
+ */
+export async function updateTracksOverride(paths, patch, options = {}) {
+  const tagsMode = options.tagsMode ?? 'replace'
+  const index = getTrackIndex()
+  const fields = ['title', 'artist', 'album']
+  let changed = 0
+
+  for (const path of paths) {
+    const track = index[path]
+    if (!track) continue
+    const override = foundry.utils.deepClone(track.override ?? {})
+
+    for (const field of fields) {
+      if (!(field in patch)) continue
+      const value = patch[field]
+      if (value === undefined) continue
+      const trimmed = typeof value === 'string' ? value.trim() : value
+      if (trimmed) override[field] = trimmed
+      else delete override[field]
+    }
+
+    if ('tags' in patch) {
+      const incoming = Array.isArray(patch.tags) ? patch.tags : []
+      if (tagsMode === 'clear') {
+        override.tags = []
+      } else if (tagsMode === 'merge') {
+        const merged = new Set([...(override.tags ?? []), ...incoming])
+        override.tags = [...merged].filter(Boolean)
+      } else {
+        override.tags = incoming
+      }
+    }
+
+    track.override = override
+    track.updatedAt = new Date().toISOString()
+    index[path] = track
+    changed += 1
+  }
+
+  if (changed) await saveTrackIndex(index)
+  return changed
+}
+
+/**
+ * @param {import('../data/schemas.mjs').MusicTrack} track
+ */
+export function isMissingMetadata(track) {
+  const hasTitle = Boolean(track.override?.title?.trim() || track.detected?.title?.trim())
+  const hasArtist = Boolean(getTrackArtist(track)?.trim())
+  return !hasTitle || !hasArtist
+}
+
+/**
  * Browse music root and return mp3 filenames in flat folder.
  */
 export async function browseMusicFiles() {
@@ -130,7 +186,7 @@ function compareTracks(a, b, sortBy, sortDir) {
 
 /**
  * @param {string} [filterQuery]
- * @param {{ tagFilter?: string[], favoriteOnly?: boolean }} [filters]
+ * @param {{ tagFilter?: string[], artistFilter?: string[], favoriteOnly?: boolean, missingMetadataOnly?: boolean }} [filters]
  */
 export function getSortedTracks(sortBy = 'title', sortDir = 'asc', filterQuery = '', filters = {}) {
   const index = getTrackIndex()
@@ -154,11 +210,36 @@ export function getSortedTracks(sortBy = 'title', sortDir = 'asc', filterQuery =
     tracks = tracks.filter((t) => favorites.has(t.path))
   }
 
+  const artistFilter = filters.artistFilter ?? []
+  if (artistFilter.length) {
+    const wanted = new Set(artistFilter.map((a) => a.toLowerCase()))
+    tracks = tracks.filter((t) => {
+      const artist = getTrackArtist(t)
+      return artist && wanted.has(artist.toLowerCase())
+    })
+  }
+
+  if (filters.missingMetadataOnly) {
+    tracks = tracks.filter((t) => isMissingMetadata(t))
+  }
+
   tracks.sort((a, b) => compareTracks(a, b, sortBy, sortDir))
   return tracks
 }
 
 const MAX_TAG_CHIPS = 30
+
+const MAX_ARTIST_CHIPS = 30
+
+export function collectArtistChips(max = MAX_ARTIST_CHIPS) {
+  const index = getTrackIndex()
+  const artists = new Set()
+  for (const track of Object.values(index)) {
+    const artist = getTrackArtist(track)?.trim()
+    if (artist) artists.add(artist)
+  }
+  return [...artists].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })).slice(0, max)
+}
 
 export function collectTagChips(max = MAX_TAG_CHIPS) {
   const index = getTrackIndex()

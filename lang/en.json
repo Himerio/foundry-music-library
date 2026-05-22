@@ -61,7 +61,31 @@
       "FilterTags": "Tags",
       "ClearTags": "Clear",
       "FavoritesOnly": "Favorites",
-      "ToggleFavorite": "Toggle favorite"
+      "ToggleFavorite": "Toggle favorite",
+      "FilterArtists": "Artists",
+      "ClearArtists": "Clear",
+      "MissingMetadataOnly": "Missing metadata",
+      "DragTracksHint": "Drag tracks from All Tracks into this list or onto a playlist in the sidebar.",
+      "DragToPlaylist": "Drag to add to a playlist",
+      "TrackAddedToPlaylist": "Track added to playlist."
+    },
+    "Bulk": {
+      "Title": "Bulk Edit Metadata",
+      "Summary": "Editing {count} track(s).",
+      "ApplyField": "Apply {field}",
+      "LeaveEmptyClear": "Leave empty to clear",
+      "TagsReplace": "Replace tags",
+      "TagsMerge": "Merge tags",
+      "TagsClear": "Clear all tags",
+      "NothingSelected": "Select at least one field to apply.",
+      "Saved": "Updated metadata on {count} track(s).",
+      "EditButton": "Bulk edit",
+      "EditContext": "Bulk edit ({count})",
+      "SelectVisible": "Select visible",
+      "ClearSelection": "Clear selection",
+      "SelectTrack": "Select track",
+      "TrackColumn": "Track",
+      "TagsModeLabel": "Tags mode (when Apply Tags is checked)"
     },
     "Track": {
       "Title": "Title",
@@ -109,7 +133,8 @@
       "TrackList": "Tracks",
       "PlayTrack": "Play this track",
       "TrackNotAvailable": "Track is not available in the synced Foundry playlist.",
-      "PlaylistNotSynced": "Could not find or sync the Foundry playlist. Open Music Library and ensure the playlist has tracks."
+      "PlaylistNotSynced": "Could not find or sync the Foundry playlist. Open Music Library and ensure the playlist has tracks.",
+      "ProgressTime": "Playback position"
     },
     "Import": {
       "Title": "Import Music Library",
