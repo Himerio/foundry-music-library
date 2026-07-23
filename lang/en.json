@@ -88,6 +88,8 @@
       "EditContext": "Bulk edit ({count})",
       "SelectVisible": "Select visible",
       "ClearSelection": "Clear selection",
+      "AddToPlaylist": "Add to playlist",
+      "AddedToPlaylist": "Added {added} track(s) to playlist ({skipped} already present).",
       "SelectTrack": "Select track",
       "TrackColumn": "Track",
       "TagsModeLabel": "Tags mode (when Apply Tags is checked)"

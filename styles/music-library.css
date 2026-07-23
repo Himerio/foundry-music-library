@@ -329,9 +329,6 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--fml-space-2);
-  margin-bottom: var(--fml-space-2);
-  padding-bottom: var(--fml-space-2);
-  border-bottom: 1px solid var(--fml-border-divider);
 }
 
 .fml-playlist-panel-head h3 {
@@ -359,6 +356,8 @@
 
 .fml-playlist-toolbar {
   margin-bottom: var(--fml-space-2);
+  padding-bottom: var(--fml-space-2);
+  border-bottom: 1px solid var(--fml-border-divider);
 }
 
 .fml-playlist-toolbar .fml-search-wrap {
@@ -928,6 +927,10 @@
 
 .fml-artist-filters,
 .fml-tag-filters {
+  display: flex;
+  flex-direction: column;
+  max-height: 200px;
+  min-height: 0;
   margin: 0;
 }
 
@@ -964,6 +967,7 @@
 
 .fml-tag-filters-header {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   font-size: var(--font-size-12);
@@ -971,6 +975,13 @@
   opacity: 0.85;
   margin-bottom: var(--fml-space-2);
   padding-bottom: var(--fml-space-1);
+}
+
+.fml-artist-filters .fml-tag-chips,
+.fml-tag-filters .fml-tag-chips {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .fml-tag-chips {

@@ -80,6 +80,8 @@ UI styles use shared tokens in `styles/fml-tokens.css` (spacing, borders, surfac
 
 ## Version
 
+**0.4.1** — sidebar artist/tag filter scroll (~200px); bulk add selected tracks to current playlist.
+
 **0.4.0** — upload progress overlay (blocking UI), playlist search, playlist track count in panel header.
 
 **0.3.1** — unified design tokens and CSS consistency pass.

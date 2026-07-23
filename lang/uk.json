@@ -88,6 +88,8 @@
       "EditContext": "Масове редагування ({count})",
       "SelectVisible": "Видимі рядки",
       "ClearSelection": "Скинути вибір",
+      "AddToPlaylist": "Додати в плейлист",
+      "AddedToPlaylist": "Додано {added} трек(ів) у плейлист ({skipped} уже були).",
       "SelectTrack": "Вибрати трек",
       "TrackColumn": "Трек",
       "TagsModeLabel": "Режим тегів (якщо увімкнено «Застосувати теги»)"

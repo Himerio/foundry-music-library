@@ -155,6 +155,9 @@
         <div class="fml-track-toolbar">
           {{#if hasSelection}}
           <div class="fml-bulk-toolbar">
+            {{#if showAddToPlaylist}}
+            <button type="button" data-action="addSelectionToPlaylist" title="{{localize "FML.Bulk.AddToPlaylist"}}"><i class="fa-solid fa-plus"></i> {{localize "FML.Bulk.AddToPlaylist"}} ({{selectionCount}})</button>
+            {{/if}}
             <button type="button" data-action="bulkEditMetadata"><i class="fa-solid fa-pen-to-square"></i> {{localize "FML.Bulk.EditButton"}} ({{selectionCount}})</button>
             <button type="button" data-action="selectAllVisible">{{localize "FML.Bulk.SelectVisible"}}</button>
             <button type="button" data-action="clearSelection">{{localize "FML.Bulk.ClearSelection"}}</button>

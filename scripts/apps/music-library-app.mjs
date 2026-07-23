@@ -120,6 +120,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       selectAllVisible: MusicLibraryApp.onSelectAllVisible,
       clearSelection: MusicLibraryApp.onClearSelection,
       bulkEditMetadata: MusicLibraryApp.onBulkEditMetadata,
+      addSelectionToPlaylist: MusicLibraryApp.onAddSelectionToPlaylist,
       trackScroll: MusicLibraryApp.onTrackScroll,
       togglePreview: MusicLibraryApp.onTogglePreview,
       stopPreview: MusicLibraryApp.onStopPreview
@@ -1231,6 +1232,47 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static onBulkEditMetadata() {
     if (!this._selectedPaths.size) return
     openBulkMetadataEditor([...this._selectedPaths], () => this.render(false))
+  }
+
+  static async onAddSelectionToPlaylist() {
+    const app = this
+    if (!app.selectedPlaylistId) {
+      ui.notifications.warn(game.i18n.localize('FML.Library.SelectPlaylist'))
+      return
+    }
+    if (!app._selectedPaths.size) return
+
+    const sortBy = game.settings.get(MODULE_ID, SETTING_KEYS.SORT_BY)
+    const sortDir = game.settings.get(MODULE_ID, SETTING_KEYS.SORT_DIR)
+    const filterQuery = app._filterQuery ?? game.settings.get(MODULE_ID, SETTING_KEYS.FILTER_QUERY) ?? ''
+    const activeTags = game.settings.get(MODULE_ID, SETTING_KEYS.ACTIVE_TAGS) ?? []
+    const activeArtists = game.settings.get(MODULE_ID, SETTING_KEYS.ACTIVE_ARTISTS) ?? []
+    const favoritesOnly = game.settings.get(MODULE_ID, SETTING_KEYS.FAVORITES_ONLY) ?? false
+    const missingMetadataOnly = game.settings.get(MODULE_ID, SETTING_KEYS.MISSING_METADATA_ONLY) ?? false
+
+    const orderedPaths = getSortedTracks(sortBy, sortDir, filterQuery, {
+      tagFilter: activeTags,
+      artistFilter: activeArtists,
+      favoriteOnly: favoritesOnly,
+      missingMetadataOnly
+    })
+      .filter((t) => app._selectedPaths.has(t.path))
+      .map((t) => t.path)
+
+    const pl = playlistStore.getPlaylistById(app.selectedPlaylistId)
+    const existing = new Set(pl?.trackPaths ?? [])
+    let added = 0
+    for (const path of orderedPaths) {
+      if (existing.has(path)) continue
+      await playlistStore.addTrackToPlaylist(app.selectedPlaylistId, path)
+      existing.add(path)
+      added += 1
+    }
+    const skipped = orderedPaths.length - added
+
+    await syncModulePlaylistToFoundry(playlistStore.getPlaylistById(app.selectedPlaylistId))
+    ui.notifications.info(game.i18n.format('FML.Bulk.AddedToPlaylist', { added, skipped }))
+    app.render(false)
   }
 
   static async onNewPlaylist() {
