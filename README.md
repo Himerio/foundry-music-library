@@ -80,6 +80,8 @@ UI styles use shared tokens in `styles/fml-tokens.css` (spacing, borders, surfac
 
 ## Version
 
+**0.4.0** — upload progress overlay (blocking UI), playlist search, playlist track count in panel header.
+
 **0.3.1** — unified design tokens and CSS consistency pass.
 
 **0.3.0** — library→playlist drag, bulk metadata, artist/missing filters, GM player progress bar (full + compact).

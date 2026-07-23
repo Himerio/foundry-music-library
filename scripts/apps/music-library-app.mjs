@@ -24,7 +24,8 @@ import {
   formatDuration,
   getDisplayLine,
   getTrackArtist,
-  getTrackTitle
+  getTrackTitle,
+  matchesSearchQuery
 } from '../services/track-display.mjs'
 import { getTrackUrl } from '../services/paths.mjs'
 import { openMetadataEditor } from './metadata-editor-app.mjs'
@@ -42,6 +43,10 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._playlistPanelScrollTop = 0
     this._playlistPanelScroller = null
     this._filterQuery = undefined
+    this._playlistFilterQuery = ''
+    this._playlistFilterRenderTimer = null
+    this._uploadBusy = false
+    this._uploadProgress = { phase: 'upload', done: 0, total: 0, currentLabel: '' }
     this._filterRenderTimer = null
     this._filterPersistTimer = null
     this._trackScroller = null
@@ -168,17 +173,37 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ? playlistStore.getPlaylistById(this.selectedPlaylistId)
       : null
 
-    const playlistTracks = selectedPlaylist
+    const playlistFilterQuery = this._playlistFilterQuery ?? ''
+    const playlistTracksAll = selectedPlaylist
       ? selectedPlaylist.trackPaths.map((path) => {
         const t = index[path]
         return {
           path,
           display: t ? getDisplayLine(t) : path,
           duration: t ? formatDuration(t.detected?.duration) : '—',
-          missing: !t || t.missing
+          missing: !t || t.missing,
+          track: t ?? null
         }
       })
       : []
+
+    const playlistTrackCountTotal = playlistTracksAll.length
+    const playlistTracks = playlistFilterQuery.trim()
+      ? playlistTracksAll.filter((row) => {
+        if (row.track) return matchesSearchQuery(row.track, playlistFilterQuery)
+        const q = playlistFilterQuery.trim().toLowerCase()
+        return row.display.toLowerCase().includes(q) || row.path.toLowerCase().includes(q)
+      })
+      : playlistTracksAll
+    const playlistTrackCountFiltered = playlistTracks.length
+    const playlistHasTracks = playlistTrackCountTotal > 0
+    const playlistReorderEnabled = !playlistFilterQuery.trim()
+    const playlistTrackCountLabel = playlistFilterQuery.trim()
+      ? game.i18n.format('FML.Library.PlaylistTrackCountFiltered', {
+        filtered: playlistTrackCountFiltered,
+        total: playlistTrackCountTotal
+      })
+      : game.i18n.format('FML.Library.PlaylistTrackCount', { count: playlistTrackCountTotal })
 
     this._virtualTrackList = allTracks
     const scrollerEl = this._trackScroller ?? this.element?.querySelector('.fml-virtual-scroll')
@@ -232,6 +257,13 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       showAddToPlaylist: Boolean(this.selectedPlaylistId),
       selectedPlaylist,
       playlistTracks,
+      playlistFilterQuery,
+      playlistHasTracks,
+      playlistTrackCountTotal,
+      playlistTrackCountFiltered,
+      playlistTrackCountLabel,
+      playlistReorderEnabled,
+      uploadBusy: this._uploadBusy,
       trackCount: Object.keys(index).length,
       emptyLibrary: allTracks.length === 0,
       missingCount,
@@ -261,11 +293,97 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._bindKeyboard()
     this._bindSortSelect()
     this._bindFilterInput()
+    this._bindPlaylistFilterInput()
     this._bindVirtualScroll()
     this._bindPlaylistPanelScroll()
     this._bindTrackSelection()
     this._syncScrollerScrollTop()
     this._syncPlaylistPanelScrollTop()
+    if (this._uploadBusy) this._syncUploadOverlayDom()
+  }
+
+  _syncUploadOverlayDom() {
+    const root = this.element?.querySelector('.fml-library')
+    const overlay = root?.querySelector('.fml-upload-overlay')
+    if (!root || !overlay) return
+    root.classList.add('fml-upload-busy')
+    overlay.hidden = false
+    this._applyUploadOverlayProgress(overlay, this._uploadProgress)
+  }
+
+  _applyUploadOverlayProgress(overlay, state) {
+    const { phase, done, total, currentLabel } = state
+    const labelEl = overlay.querySelector('.fml-upload-overlay-label')
+    const fileEl = overlay.querySelector('.fml-upload-overlay-file')
+    const countEl = overlay.querySelector('.fml-upload-overlay-count')
+    const fillEl = overlay.querySelector('.fml-upload-progress-fill')
+    const percent = total > 0 ? Math.round((done / total) * 100) : 0
+
+    if (labelEl) {
+      labelEl.textContent = phase === 'scan'
+        ? game.i18n.localize('FML.Upload.Scanning')
+        : game.i18n.localize('FML.Upload.InProgress')
+    }
+    if (fileEl) fileEl.textContent = currentLabel ?? ''
+    if (countEl) {
+      countEl.textContent = game.i18n.format('FML.Upload.Progress', { done, total })
+    }
+    if (fillEl) fillEl.style.width = `${percent}%`
+  }
+
+  _showUploadOverlay(total) {
+    this._uploadBusy = true
+    this._uploadProgress = { phase: 'upload', done: 0, total, currentLabel: '' }
+    const root = this.element?.querySelector('.fml-library')
+    const overlay = root?.querySelector('.fml-upload-overlay')
+    if (!root || !overlay) return
+    root.classList.add('fml-upload-busy')
+    overlay.hidden = false
+    this._applyUploadOverlayProgress(overlay, this._uploadProgress)
+  }
+
+  _updateUploadOverlay(state) {
+    this._uploadProgress = state
+    const overlay = this.element?.querySelector('.fml-upload-overlay')
+    if (overlay) this._applyUploadOverlayProgress(overlay, state)
+  }
+
+  _hideUploadOverlay() {
+    this._uploadBusy = false
+    const root = this.element?.querySelector('.fml-library')
+    const overlay = root?.querySelector('.fml-upload-overlay')
+    if (root) root.classList.remove('fml-upload-busy')
+    if (overlay) overlay.hidden = true
+  }
+
+  async _runUpload(fileList) {
+    if (!canManageMusicLibrary() || !fileList?.length) return
+    if (this._uploadBusy) {
+      ui.notifications.warn(game.i18n.localize('FML.Upload.Busy'))
+      return
+    }
+
+    const files = [...fileList]
+    this._showUploadOverlay(files.length)
+
+    try {
+      const result = await uploadMp3Files(files, {
+        onProgress: (state) => this._updateUploadOverlay(state)
+      })
+      if (result.errors > 0 && result.uploaded === 0) {
+        ui.notifications.error(game.i18n.localize('FML.Upload.Failed'))
+      } else if (result.uploaded > 0) {
+        ui.notifications.info(game.i18n.format('FML.Upload.Complete', result))
+      } else if (result.skipped > 0) {
+        ui.notifications.warn(game.i18n.format('FML.Upload.Skipped', result))
+      }
+    } catch (e) {
+      console.error('FML | Upload batch failed', e)
+      ui.notifications.error(game.i18n.localize('FML.Upload.Failed'))
+    } finally {
+      this._hideUploadOverlay()
+      await this.render(false)
+    }
   }
 
   _bindTrackSelection() {
@@ -711,6 +829,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     list.addEventListener('dragstart', (event) => {
       if (!canManageMusicLibrary()) return
+      if (app._playlistFilterQuery?.trim()) return
       const li = event.target.closest('li[data-path]')
       if (!li || event.target.closest('button, input, select, a')) return
       const path = li.dataset.path
@@ -765,6 +884,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
 
       if (data.type !== 'fml-playlist-track' || data.playlistId !== playlistId) return
+      if (app._playlistFilterQuery?.trim()) return
 
       const targetLi = event.target.closest('li[data-path]')
       if (!targetLi) return
@@ -789,19 +909,11 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     root.dataset.uploadBound = '1'
 
     const handleFiles = async (fileList) => {
-      if (!canManageMusicLibrary() || !fileList?.length) return
-      const result = await uploadMp3Files(fileList)
-      if (result.errors > 0 && result.uploaded === 0) {
-        ui.notifications.error(game.i18n.localize('FML.Upload.Failed'))
-      } else if (result.uploaded > 0) {
-        ui.notifications.info(game.i18n.format('FML.Upload.Complete', result))
-      } else if (result.skipped > 0) {
-        ui.notifications.warn(game.i18n.format('FML.Upload.Skipped', result))
-      }
-      await this.render(false)
+      await this._runUpload(fileList)
     }
 
     const isFileDrag = (event) => {
+      if (this._uploadBusy) return false
       const types = event.dataTransfer?.types
       if (!types) return false
       return typeof types.includes === 'function'
@@ -896,8 +1008,43 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     })
   }
 
+  _bindPlaylistFilterInput() {
+    const input = this.element?.querySelector('input[name="playlistFilterQuery"]')
+    if (!input || input.dataset.fmlBound) return
+    input.dataset.fmlBound = '1'
+
+    const applyFilter = async (value, selection) => {
+      if (value === this._playlistFilterQuery) return
+      this._playlistFilterQuery = value
+      await this.render(false)
+      this._restoreSearchFocus('input[name="playlistFilterQuery"]', selection)
+    }
+
+    input.addEventListener('input', () => {
+      const value = input.value
+      const selection = { start: input.selectionStart, end: input.selectionEnd }
+      clearTimeout(this._playlistFilterRenderTimer)
+      this._playlistFilterRenderTimer = setTimeout(() => {
+        applyFilter(value, selection).catch((e) => console.error('FML | Playlist filter render failed', e))
+      }, 200)
+    })
+
+    input.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Enter') return
+      ev.preventDefault()
+      clearTimeout(this._playlistFilterRenderTimer)
+      const value = input.value
+      const selection = { start: input.selectionStart, end: input.selectionEnd }
+      applyFilter(value, selection).catch((e) => console.error('FML | Playlist filter apply failed', e))
+    })
+  }
+
   _restoreFilterFocus(selection) {
-    const el = this.element?.querySelector('input[name="filterQuery"]')
+    this._restoreSearchFocus('input[name="filterQuery"]', selection)
+  }
+
+  _restoreSearchFocus(selector, selection) {
+    const el = this.element?.querySelector(selector)
     if (!el) return
     el.focus()
     if (selection && Number.isFinite(selection.start) && Number.isFinite(selection.end)) {
@@ -969,6 +1116,10 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static onUploadTracks() {
+    if (this._uploadBusy) {
+      ui.notifications.warn(game.i18n.localize('FML.Upload.Busy'))
+      return
+    }
     this.element?.querySelector('.fml-upload-input')?.click()
   }
 
@@ -1098,12 +1249,14 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static onSelectLibrary() {
     this.selectedPlaylistId = ''
+    this._playlistFilterQuery = ''
     this._playlistPanelScrollTop = 0
     this.render(false)
   }
 
   static onSelectPlaylist(event, target) {
     this.selectedPlaylistId = target.closest('[data-playlist-id]')?.dataset?.playlistId ?? ''
+    this._playlistFilterQuery = ''
     this._playlistPanelScrollTop = 0
     this.render(false)
   }

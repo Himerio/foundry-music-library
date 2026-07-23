@@ -73,6 +73,19 @@ export function getSearchBlob(track) {
 }
 
 /**
+ * @param {import('../data/schemas.mjs').MusicTrack | { path?: string, filename?: string }} track
+ * @param {string} query
+ */
+export function matchesSearchQuery(track, query) {
+  if (!query?.trim()) return true
+  const q = query.trim().toLowerCase()
+  if (track.path && !track.filename && !track.detected && !track.override) {
+    return track.path.toLowerCase().includes(q)
+  }
+  return getSearchBlob(track).includes(q)
+}
+
+/**
  * Single-line label: title, then artist after a dash when artist is known.
  * @param {import('../data/schemas.mjs').MusicTrack} track
  */

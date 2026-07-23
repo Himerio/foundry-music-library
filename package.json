@@ -1,6 +1,6 @@
 {
   "name": "foundry-music-library",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "description": "Music library UI layer for Foundry VTT v13.",
   "scripts": {

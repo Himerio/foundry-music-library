@@ -1,4 +1,14 @@
-<div class="fml-library" data-view="{{viewMode}}" data-upload-dropzone>
+<div class="fml-library{{#if uploadBusy}} fml-upload-busy{{/if}}" data-view="{{viewMode}}" data-upload-dropzone>
+  <div class="fml-upload-overlay" {{#unless uploadBusy}}hidden{{/unless}} aria-busy="true" aria-live="polite">
+    <div class="fml-upload-overlay-card">
+      <p class="fml-upload-overlay-label">{{localize "FML.Upload.InProgress"}}</p>
+      <p class="fml-upload-overlay-file"></p>
+      <div class="fml-upload-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <div class="fml-upload-progress-fill"></div>
+      </div>
+      <p class="fml-upload-overlay-count"></p>
+    </div>
+  </div>
   <header class="fml-toolbar">
     <div class="fml-toolbar-actions">
       <button type="button" data-action="scan" title="{{localize "FML.Library.Scan"}}"><i class="fa-solid fa-rotate"></i> {{localize "FML.Library.Scan"}}</button>
@@ -101,12 +111,26 @@
     <main class="fml-main">
       {{#if selectedPlaylist}}
       <section class="fml-playlist-panel">
-        <h3>{{localize "FML.Library.PlaylistTracks"}}: {{selectedPlaylist.name}}</h3>
+        <div class="fml-playlist-panel-head">
+          <h3>{{localize "FML.Library.PlaylistTracks"}}: {{selectedPlaylist.name}}</h3>
+          <span class="fml-playlist-track-count" title="{{localize "FML.Library.PlaylistTrackCountTitle"}}">{{playlistTrackCountLabel}}</span>
+        </div>
+        <div class="fml-playlist-toolbar">
+          <div class="fml-search-wrap">
+            <i class="fa-solid fa-search"></i>
+            <input type="search" name="playlistFilterQuery" value="{{playlistFilterQuery}}" placeholder="{{localize "FML.Library.SearchPlaylist"}}" />
+          </div>
+        </div>
+        {{#if playlistHasTracks}}
         {{#if playlistTracks.length}}
         <ul class="fml-playlist-tracks">
           {{#each playlistTracks}}
-          <li data-path="{{path}}" class="{{#if missing}}missing{{/if}}" draggable="true">
+          <li data-path="{{path}}" class="{{#if missing}}missing{{/if}}{{#unless ../playlistReorderEnabled}} fml-playlist-track--no-reorder{{/unless}}" {{#if ../playlistReorderEnabled}}draggable="true"{{/if}}>
+            {{#if ../playlistReorderEnabled}}
             <span class="drag-handle" title="{{localize "FML.Library.DragReorder"}}"><i class="fa-solid fa-grip-vertical"></i></span>
+            {{else}}
+            <span class="drag-handle drag-handle--disabled" aria-hidden="true"><i class="fa-solid fa-grip-vertical"></i></span>
+            {{/if}}
             <span class="title">{{display}}</span>
             <span class="duration">{{duration}}</span>
             <div class="actions">
@@ -115,6 +139,9 @@
           </li>
           {{/each}}
         </ul>
+        {{else}}
+        <p class="fml-empty">{{localize "FML.Library.NoPlaylistMatches"}}</p>
+        {{/if}}
         {{else}}
         <div class="fml-playlist-drop-zone fml-empty">
           <p>{{localize "FML.Library.EmptyPlaylistTracks"}}</p>

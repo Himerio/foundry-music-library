@@ -2,7 +2,7 @@ import { MODULE_ID, SETTING_KEYS } from '../constants.mjs'
 import { createEmptyTrack } from '../data/schemas.mjs'
 import { getMusicRoot, isMp3Filename, normalizeTrackPath } from './paths.mjs'
 import { parseTrackMetadata } from './metadata-service.mjs'
-import { getSearchBlob, getTrackArtist, getTrackTags, getTrackTitle } from './track-display.mjs'
+import { getTrackArtist, getTrackTags, getTrackTitle, matchesSearchQuery } from './track-display.mjs'
 import { getFavoritePaths } from './favorite-store.mjs'
 
 export function getTrackIndex() {
@@ -193,8 +193,7 @@ export function getSortedTracks(sortBy = 'title', sortDir = 'asc', filterQuery =
   let tracks = Object.values(index)
 
   if (filterQuery?.trim()) {
-    const q = filterQuery.trim().toLowerCase()
-    tracks = tracks.filter((t) => getSearchBlob(t).includes(q))
+    tracks = tracks.filter((t) => matchesSearchQuery(t, filterQuery))
   }
 
   const tagFilter = filters.tagFilter ?? []

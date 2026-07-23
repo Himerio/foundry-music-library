@@ -67,7 +67,12 @@
       "MissingMetadataOnly": "Missing metadata",
       "DragTracksHint": "Drag tracks from All Tracks into this list or onto a playlist in the sidebar.",
       "DragToPlaylist": "Drag to add to a playlist",
-      "TrackAddedToPlaylist": "Track added to playlist."
+      "TrackAddedToPlaylist": "Track added to playlist.",
+      "SearchPlaylist": "Search playlist…",
+      "NoPlaylistMatches": "No tracks match your search.",
+      "PlaylistTrackCount": "{count} tracks",
+      "PlaylistTrackCountFiltered": "{filtered} / {total} tracks",
+      "PlaylistTrackCountTitle": "Tracks in this playlist"
     },
     "Bulk": {
       "Title": "Bulk Edit Metadata",
@@ -112,7 +117,11 @@
       "Button": "Upload",
       "Complete": "Uploaded {uploaded} file(s). Skipped {skipped}.",
       "Skipped": "No files uploaded. {skipped} skipped (duplicate or invalid).",
-      "Failed": "Upload failed for one or more files."
+      "Failed": "Upload failed for one or more files.",
+      "InProgress": "Uploading music files…",
+      "Progress": "{done} / {total} files",
+      "Scanning": "Scanning library…",
+      "Busy": "An upload is already in progress."
     },
     "Widget": {
       "Title": "Music Player",

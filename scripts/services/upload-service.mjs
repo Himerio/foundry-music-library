@@ -95,11 +95,27 @@ async function postUploadFile(targetDir, file) {
 }
 
 /**
+ * @typedef {{ phase: 'upload'|'scan', done: number, total: number, currentLabel?: string }} UploadProgressState
+ * @typedef {{ onProgress?: (state: UploadProgressState) => void }} UploadMp3Options
+ */
+
+/**
+ * @param {UploadProgressState} state
+ * @param {UploadMp3Options['onProgress']} onProgress
+ */
+function reportProgress(state, onProgress) {
+  onProgress?.(state)
+}
+
+/**
  * @param {FileList | File[]} fileList
+ * @param {UploadMp3Options} [options]
  * @returns {Promise<{ uploaded: number, skipped: number, errors: number }>}
  */
-export async function uploadMp3Files(fileList) {
+export async function uploadMp3Files(fileList, options = {}) {
+  const { onProgress } = options
   const files = [...fileList]
+  const total = files.length
   const targetDir = getUploadDirectory()
   await ensureUploadDirectory(targetDir)
 
@@ -112,11 +128,16 @@ export async function uploadMp3Files(fileList) {
   let uploaded = 0
   let skipped = 0
   let errors = 0
+  let done = 0
+
+  reportProgress({ phase: 'upload', done: 0, total, currentLabel: '' }, onProgress)
 
   for (const file of files) {
     const validation = validateUploadFile(file)
     if (!validation.ok) {
       skipped += 1
+      done += 1
+      reportProgress({ phase: 'upload', done, total, currentLabel: file.name }, onProgress)
       continue
     }
 
@@ -124,6 +145,8 @@ export async function uploadMp3Files(fileList) {
     const nameLower = file.name.toLowerCase()
     if (index[normalized] || onDiskNames.has(nameLower)) {
       skipped += 1
+      done += 1
+      reportProgress({ phase: 'upload', done, total, currentLabel: file.name }, onProgress)
       continue
     }
 
@@ -135,9 +158,12 @@ export async function uploadMp3Files(fileList) {
       console.error('FML | Upload failed', file.name, e)
       errors += 1
     }
+    done += 1
+    reportProgress({ phase: 'upload', done, total, currentLabel: file.name }, onProgress)
   }
 
   if (uploaded > 0) {
+    reportProgress({ phase: 'scan', done: total, total, currentLabel: '' }, onProgress)
     await scanMusicLibrary({ forceMetadata: false })
   }
 

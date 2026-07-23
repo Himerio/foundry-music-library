@@ -36,6 +36,12 @@ The zip contains a top-level `foundry-music-library/` folder (required by Foundr
 
 Foundry uses `releases/latest/download/…` so the newest release becomes the default install target.
 
+## v0.4.0 release notes
+
+- **Upload:** blocking overlay with progress bar while MP3 files upload and library rescans; prevents duplicate uploads mid-batch
+- **Playlist panel:** search field (same text matching as All Tracks), track count badge in header (`N` or `filtered / total`)
+- Reorder drag disabled while playlist search filter is active (library→playlist drop still works)
+
 ## v0.3.1 release notes
 
 - Shared design tokens (`fml-tokens.css`): spacing scale, borders, semantic surfaces

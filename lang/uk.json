@@ -67,7 +67,12 @@
       "MissingMetadataOnly": "Без метаданих",
       "DragTracksHint": "Перетягніть треки з «Усі треки» сюди або на плейлист у бічній панелі.",
       "DragToPlaylist": "Перетягніть, щоб додати до плейлиста",
-      "TrackAddedToPlaylist": "Трек додано до плейлиста."
+      "TrackAddedToPlaylist": "Трек додано до плейлиста.",
+      "SearchPlaylist": "Пошук у плейлисті…",
+      "NoPlaylistMatches": "Жоден трек не відповідає пошуку.",
+      "PlaylistTrackCount": "{count} треків",
+      "PlaylistTrackCountFiltered": "{filtered} / {total} треків",
+      "PlaylistTrackCountTitle": "Кількість треків у плейлисті"
     },
     "Bulk": {
       "Title": "Масове редагування метаданих",
@@ -112,7 +117,11 @@
       "Button": "Завантажити",
       "Complete": "Завантажено файлів: {uploaded}. Пропущено: {skipped}.",
       "Skipped": "Нічого не завантажено. Пропущено: {skipped} (дублікат або невалідний файл).",
-      "Failed": "Не вдалося завантажити один або кілька файлів."
+      "Failed": "Не вдалося завантажити один або кілька файлів.",
+      "InProgress": "Завантаження музичних файлів…",
+      "Progress": "{done} / {total} файлів",
+      "Scanning": "Сканування бібліотеки…",
+      "Busy": "Завантаження вже виконується."
     },
     "Widget": {
       "Title": "Музичний плеєр",
