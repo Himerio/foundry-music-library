@@ -32,6 +32,7 @@ import { openMetadataEditor } from './metadata-editor-app.mjs'
 import { openBulkMetadataEditor } from './bulk-metadata-editor-app.mjs'
 import { GmPlaybackWidget, refreshGmPlaybackWidget } from './gm-playback-widget.mjs'
 import { promptPlaylistName } from './playlist-name-dialog.mjs'
+import { dialogRenderOptions } from '../utils/dialogs.mjs'
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 
@@ -77,9 +78,9 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
-  async render(force = false, options = {}) {
+  async render(options = {}, _options = {}) {
     this._savePlaylistPanelScroll()
-    return super.render(force, options)
+    return super.render(options, _options)
   }
 
   static DEFAULT_OPTIONS = {
@@ -139,14 +140,14 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications.warn(game.i18n.localize('FML.Common.NoPermission'))
       return null
     }
-    const existing = foundry.applications.instances?.get('fml-music-library')
+    const existing = foundry.applications.instances.get('fml-music-library')
     if (existing) {
-      existing.render(false)
+      existing.render()
       return existing
     }
     const uiPrefs = game.settings.get(MODULE_ID, SETTING_KEYS.LIBRARY_UI) ?? {}
     const app = new MusicLibraryApp(options)
-    app.render(true, { position: uiPrefs })
+    app.render({ force: true, position: uiPrefs })
     return app
   }
 
@@ -383,7 +384,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications.error(game.i18n.localize('FML.Upload.Failed'))
     } finally {
       this._hideUploadOverlay()
-      await this.render(false)
+      await this.render()
     }
   }
 
@@ -398,7 +399,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (event.shiftKey) {
         event.preventDefault()
         this._toggleRangeSelection(checkbox.dataset.path)
-        this.render(false)
+        this.render()
         return
       }
       this._selectionAnchor = checkbox.dataset.path
@@ -565,7 +566,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     panel.dataset.fmlCtxBound = '1'
 
     const ContextMenu = foundry.applications.ux.ContextMenu.implementation
-    this._trackContextMenu = new ContextMenu(
+    const menu = new ContextMenu(
       panel,
       '.fml-track-row[data-path]',
       [],
@@ -573,68 +574,69 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
         jQuery: false,
         onOpen: (target) => {
           const path = target.closest('.fml-track-row[data-path]')?.dataset?.path
-          if (!path || !ui.context) return
-          ui.context.menuItems = this._trackContextItems(path)
+          menu.menuItems = path ? this._trackContextItems(path) : []
         }
       }
     )
+    this._trackContextMenu = menu
   }
 
+  /**
+   * Context menu entries for a track row (v14 ContextMenuEntry: label / icon class / onClick).
+   * ContextMenu has no nested submenus, so per-playlist targets are listed as their own group.
+   * @param {string} path
+   */
   _trackContextItems(path) {
     const isPreviewing = this._previewPath === path
-    const items = [
+    const addTo = async (playlistId) => {
+      await playlistStore.addTrackToPlaylist(playlistId, path)
+      await syncModulePlaylistToFoundry(playlistStore.getPlaylistById(playlistId))
+      this.render()
+    }
+
+    const items = []
+    if (this.selectedPlaylistId) {
+      items.push({
+        label: 'FML.Track.AddToPlaylist',
+        icon: 'fa-solid fa-plus',
+        onClick: () => addTo(this.selectedPlaylistId)
+      })
+    }
+
+    items.push(
       {
-        name: game.i18n.localize(isPreviewing ? 'FML.Track.StopPreview' : 'FML.Track.PlayPreview'),
-        icon: isPreviewing
-          ? '<i class="fa-solid fa-stop"></i>'
-          : '<i class="fa-solid fa-play"></i>',
-        callback: () => (isPreviewing ? this._stopPreview() : this._playPreview(path))
+        label: isPreviewing ? 'FML.Track.StopPreview' : 'FML.Track.PlayPreview',
+        icon: isPreviewing ? 'fa-solid fa-stop' : 'fa-solid fa-play',
+        onClick: () => (isPreviewing ? this._stopPreview() : this._playPreview(path))
       },
       {
-        name: game.i18n.localize('FML.Track.EditMetadata'),
-        icon: '<i class="fa-solid fa-pen"></i>',
-        callback: () => openMetadataEditor(path, () => this.render(false))
+        label: 'FML.Track.EditMetadata',
+        icon: 'fa-solid fa-pen',
+        onClick: () => openMetadataEditor(path, () => this.render(), this)
       },
-      ...(this._selectedPaths.size >= 1
-        ? [{
-          name: game.i18n.format('FML.Bulk.EditContext', { count: this._selectedPaths.size }),
-          icon: '<i class="fa-solid fa-pen-to-square"></i>',
-          callback: () => openBulkMetadataEditor([...this._selectedPaths], () => this.render(false))
-        }]
-        : []),
       {
-        name: game.i18n.localize('FML.Track.CopyFilename'),
-        icon: '<i class="fa-solid fa-copy"></i>',
-        callback: () => {
+        label: game.i18n.format('FML.Bulk.EditContext', { count: this._selectedPaths.size }),
+        icon: 'fa-solid fa-pen-to-square',
+        visible: this._selectedPaths.size >= 1,
+        onClick: () => openBulkMetadataEditor([...this._selectedPaths], () => this.render(), this)
+      },
+      {
+        label: 'FML.Track.CopyFilename',
+        icon: 'fa-solid fa-copy',
+        onClick: () => {
           const t = getTrackIndex()[path]
-          if (t) navigator.clipboard.writeText(t.filename)
+          if (t) game.clipboard.copyPlainText(t.filename)
         }
       }
-    ]
-    if (this.selectedPlaylistId) {
-      items.unshift({
-        name: game.i18n.localize('FML.Track.AddToPlaylist'),
-        icon: '<i class="fa-solid fa-plus"></i>',
-        callback: async () => {
-          await playlistStore.addTrackToPlaylist(this.selectedPlaylistId, path)
-          await syncModulePlaylistToFoundry(playlistStore.getPlaylistById(this.selectedPlaylistId))
-          this.render(false)
-        }
-      })
-    } else {
-      const subs = playlistStore.getPlaylists().map((pl) => ({
-        name: pl.name,
-        callback: async () => {
-          await playlistStore.addTrackToPlaylist(pl.id, path)
-          await syncModulePlaylistToFoundry(playlistStore.getPlaylistById(pl.id))
-          this.render(false)
-        }
-      }))
-      if (subs.length) {
-        items.unshift({
-          name: game.i18n.localize('FML.Track.AddToPlaylist'),
-          icon: '<i class="fa-solid fa-list"></i>',
-          childEntries: subs
+    )
+
+    if (!this.selectedPlaylistId) {
+      for (const pl of playlistStore.getPlaylists()) {
+        items.push({
+          label: game.i18n.format('FML.Track.AddToNamedPlaylist', { name: pl.name }),
+          icon: 'fa-solid fa-list',
+          group: 'addToPlaylist',
+          onClick: () => addTo(pl.id)
         })
       }
     }
@@ -650,7 +652,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._previewAudio = null
     this._previewPath = null
     if (game.musicLibrary) game.musicLibrary._preview = null
-    if (render && this.rendered) this.render(false)
+    if (render && this.rendered) this.render()
   }
 
   _playPreview(path) {
@@ -666,7 +668,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._stopPreview()
     }, { once: true })
     audio.play()
-      .then(() => { if (this.rendered) this.render(false) })
+      .then(() => { if (this.rendered) this.render() })
       .catch((e) => {
         console.error('FML | Preview playback failed', e)
         ui.notifications.warn(game.i18n.localize('FML.Common.Error'))
@@ -727,7 +729,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!already) {
       ui.notifications.info(game.i18n.localize('FML.Library.TrackAddedToPlaylist'))
     }
-    await this.render(false)
+    await this.render()
   }
 
   _bindLibraryDragDrop() {
@@ -900,7 +902,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const updated = await playlistStore.reorderPlaylistTracks(playlistId, fromIndex, toIndex)
       if (!updated) return
       await syncModulePlaylistToFoundry(playlistStore.getPlaylistById(playlistId))
-      app.render(false)
+      app.render()
     })
   }
 
@@ -945,7 +947,6 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       event.preventDefault()
       await handleFiles(event.dataTransfer?.files)
     })
-    window.addEventListener('dragend', () => setUploadHover(false))
     this._uploadHandler = handleFiles
   }
 
@@ -959,7 +960,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       await game.settings.set(MODULE_ID, SETTING_KEYS.SORT_BY, value)
       this.scrollTop = 0
       this._lastVirtualStartIdx = -1
-      await this.render(false)
+      await this.render()
     })
   }
 
@@ -973,7 +974,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._filterQuery = value
       this.scrollTop = 0
       this._lastVirtualStartIdx = -1
-      await this.render(false)
+      await this.render()
       this._restoreFilterFocus(selection)
     }
 
@@ -1017,7 +1018,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const applyFilter = async (value, selection) => {
       if (value === this._playlistFilterQuery) return
       this._playlistFilterQuery = value
-      await this.render(false)
+      await this.render()
       this._restoreSearchFocus('input[name="playlistFilterQuery"]', selection)
     }
 
@@ -1061,14 +1062,14 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const app = this
     const result = await scanMusicLibrary({ forceMetadata: false })
     ui.notifications.info(game.i18n.format('FML.Library.ScanComplete', result))
-    app.render(false)
+    app.render()
   }
 
   static async onRescan() {
     const app = this
     const result = await scanMusicLibrary({ forceMetadata: true })
     ui.notifications.info(game.i18n.format('FML.Library.ScanComplete', result))
-    app.render(false)
+    app.render()
   }
 
   static onExport() {
@@ -1077,39 +1078,37 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static async onImport() {
     const app = this
-    const DialogV2 = foundry.applications.api.DialogV2
-    if (DialogV2?.wait) {
-      const result = await DialogV2.wait({
-        window: { title: game.i18n.localize('FML.Import.Title') },
-        content: `<p>${game.i18n.localize('FML.Import.Mode')}</p>
-          <select name="mode" style="width:100%">
-            <option value="merge">${game.i18n.localize('FML.Import.Merge')}</option>
-            <option value="replace">${game.i18n.localize('FML.Import.Replace')}</option>
-            <option value="metadata-only">${game.i18n.localize('FML.Import.MetadataOnly')}</option>
-            <option value="playlists-only">${game.i18n.localize('FML.Import.PlaylistsOnly')}</option>
-          </select>`,
-        buttons: [
-          { action: 'ok', label: game.i18n.localize('FML.Common.Confirm'), default: true },
-          { action: 'cancel', label: game.i18n.localize('FML.Common.Cancel') }
-        ]
-      })
-      if (result !== 'ok') return
-      const select = document.querySelector('select[name="mode"]')
-      const mode = select?.value ?? 'merge'
-      try {
-        const imp = await pickAndImport(mode)
-        if (imp?.warnings?.length) {
-          ui.notifications.warn(game.i18n.localize('FML.Import.Warnings'))
-        }
-        app.render(false)
-      } catch (e) {
-        console.error(e)
-        ui.notifications.error(game.i18n.localize('FML.Common.Error'))
+    const mode = await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize('FML.Import.Title') },
+      content: `<p>${game.i18n.localize('FML.Import.Mode')}</p>
+        <select name="mode" style="width:100%">
+          <option value="merge">${game.i18n.localize('FML.Import.Merge')}</option>
+          <option value="replace">${game.i18n.localize('FML.Import.Replace')}</option>
+          <option value="metadata-only">${game.i18n.localize('FML.Import.MetadataOnly')}</option>
+          <option value="playlists-only">${game.i18n.localize('FML.Import.PlaylistsOnly')}</option>
+        </select>`,
+      renderOptions: dialogRenderOptions(app),
+      buttons: [
+        {
+          action: 'ok',
+          label: game.i18n.localize('FML.Common.Confirm'),
+          default: true,
+          callback: (_event, button) => button.form.elements.mode.value || 'merge'
+        },
+        { action: 'cancel', label: game.i18n.localize('FML.Common.Cancel'), callback: () => null }
+      ]
+    })
+    if (!mode) return
+    try {
+      const imp = await pickAndImport(mode)
+      if (imp?.warnings?.length) {
+        ui.notifications.warn(game.i18n.localize('FML.Import.Warnings'))
       }
-      return
+      app.render()
+    } catch (e) {
+      console.error(e)
+      ui.notifications.error(game.i18n.localize('FML.Common.Error'))
     }
-    await pickAndImport('merge')
-    app.render(false)
   }
 
   static onOpenWidget() {
@@ -1140,7 +1139,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const path = MusicLibraryApp._pathFromActionTarget(target)
     if (!path) return
     await favoriteStore.toggleFavorite(path)
-    await this.render(false)
+    await this.render()
   }
 
   static async onToggleTagFilter(event, target) {
@@ -1153,14 +1152,14 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await game.settings.set(MODULE_ID, SETTING_KEYS.ACTIVE_TAGS, active)
     this.scrollTop = 0
     this._resetVirtualScrollAnchor()
-    await this.render(false)
+    await this.render()
   }
 
   static async onClearTagFilter() {
     await game.settings.set(MODULE_ID, SETTING_KEYS.ACTIVE_TAGS, [])
     this.scrollTop = 0
     this._resetVirtualScrollAnchor()
-    await this.render(false)
+    await this.render()
   }
 
   static async onToggleFavoritesFilter() {
@@ -1168,7 +1167,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await game.settings.set(MODULE_ID, SETTING_KEYS.FAVORITES_ONLY, !cur)
     this.scrollTop = 0
     this._resetVirtualScrollAnchor()
-    await this.render(false)
+    await this.render()
   }
 
   static async onToggleArtistFilter(event, target) {
@@ -1181,14 +1180,14 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await game.settings.set(MODULE_ID, SETTING_KEYS.ACTIVE_ARTISTS, active)
     this.scrollTop = 0
     this._resetVirtualScrollAnchor()
-    await this.render(false)
+    await this.render()
   }
 
   static async onClearArtistFilter() {
     await game.settings.set(MODULE_ID, SETTING_KEYS.ACTIVE_ARTISTS, [])
     this.scrollTop = 0
     this._resetVirtualScrollAnchor()
-    await this.render(false)
+    await this.render()
   }
 
   static async onToggleMissingMetadataFilter() {
@@ -1196,7 +1195,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await game.settings.set(MODULE_ID, SETTING_KEYS.MISSING_METADATA_ONLY, !cur)
     this.scrollTop = 0
     this._resetVirtualScrollAnchor()
-    await this.render(false)
+    await this.render()
   }
 
   static onToggleTrackSelect(event, target) {
@@ -1210,7 +1209,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       else this._selectedPaths.delete(path)
       this._selectionAnchor = path
     }
-    this.render(false)
+    this.render()
   }
 
   static onSelectAllVisible() {
@@ -1220,18 +1219,18 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._trackScroller?.clientHeight
     )
     for (const row of virtual.visibleTracks) this._selectedPaths.add(row.path)
-    this.render(false)
+    this.render()
   }
 
   static onClearSelection() {
     this._selectedPaths.clear()
     this._selectionAnchor = null
-    this.render(false)
+    this.render()
   }
 
   static onBulkEditMetadata() {
     if (!this._selectedPaths.size) return
-    openBulkMetadataEditor([...this._selectedPaths], () => this.render(false))
+    openBulkMetadataEditor([...this._selectedPaths], () => this.render(), this)
   }
 
   static async onAddSelectionToPlaylist() {
@@ -1272,20 +1271,21 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     await syncModulePlaylistToFoundry(playlistStore.getPlaylistById(app.selectedPlaylistId))
     ui.notifications.info(game.i18n.format('FML.Bulk.AddedToPlaylist', { added, skipped }))
-    app.render(false)
+    app.render()
   }
 
   static async onNewPlaylist() {
     const app = this
     const name = await promptPlaylistName({
       title: game.i18n.localize('FML.Library.NewPlaylist'),
-      defaultValue: 'Playlist'
+      defaultValue: 'Playlist',
+      parent: app
     })
     if (!name) return
     const pl = await playlistStore.createModulePlaylist(name)
     await syncModulePlaylistToFoundry(pl)
     app.selectedPlaylistId = pl.id
-    app.render(false)
+    app.render()
     refreshGmPlaybackWidget()
   }
 
@@ -1293,14 +1293,14 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.selectedPlaylistId = ''
     this._playlistFilterQuery = ''
     this._playlistPanelScrollTop = 0
-    this.render(false)
+    this.render()
   }
 
   static onSelectPlaylist(event, target) {
     this.selectedPlaylistId = target.closest('[data-playlist-id]')?.dataset?.playlistId ?? ''
     this._playlistFilterQuery = ''
     this._playlistPanelScrollTop = 0
-    this.render(false)
+    this.render()
   }
 
   static async onRenamePlaylist() {
@@ -1309,12 +1309,13 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!pl) return
     const name = await promptPlaylistName({
       title: game.i18n.localize('FML.Library.RenamePlaylist'),
-      defaultValue: pl.name
+      defaultValue: pl.name,
+      parent: app
     })
     if (!name) return
     await playlistStore.renameModulePlaylist(pl.id, name)
     await syncModulePlaylistToFoundry(playlistStore.getPlaylistById(pl.id))
-    app.render(false)
+    app.render()
     refreshGmPlaybackWidget()
   }
 
@@ -1324,7 +1325,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (copy) {
       await syncModulePlaylistToFoundry(copy)
       app.selectedPlaylistId = copy.id
-      app.render(false)
+      app.render()
       refreshGmPlaybackWidget()
     }
   }
@@ -1333,16 +1334,11 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const app = this
     const pl = playlistStore.getPlaylistById(app.selectedPlaylistId)
     if (!pl) return
-    const D2 = foundry.applications.api.DialogV2
-    let confirmed = true
-    if (D2?.confirm) {
-      confirmed = await D2.confirm({
-        window: { title: game.i18n.localize('FML.Library.DeletePlaylist') },
-        content: `<p>${pl.name}?</p>`
-      })
-    } else if (!window.confirm(`${pl.name}?`)) {
-      confirmed = false
-    }
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize('FML.Library.DeletePlaylist') },
+      content: `<p>${foundry.utils.escapeHTML(pl.name)}?</p>`,
+      renderOptions: dialogRenderOptions(app)
+    })
     if (!confirmed) return
     const deletedId = pl.id
     await stopAllModulePlaylists()
@@ -1355,14 +1351,14 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ?? ''
     await game.settings.set(MODULE_ID, SETTING_KEYS.ACTIVE_MODULE_PLAYLIST_ID, nextActive)
     app.selectedPlaylistId = ''
-    app.render(false)
+    app.render()
     await refreshGmPlaybackWidget()
   }
 
   static async onToggleSortDir() {
     const cur = game.settings.get(MODULE_ID, SETTING_KEYS.SORT_DIR)
     await game.settings.set(MODULE_ID, SETTING_KEYS.SORT_DIR, cur === 'asc' ? 'desc' : 'asc')
-    this.render(false)
+    this.render()
   }
 
   static async onAddToPlaylist(event, target) {
@@ -1375,12 +1371,12 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     await playlistStore.addTrackToPlaylist(app.selectedPlaylistId, path)
     await syncModulePlaylistToFoundry(playlistStore.getPlaylistById(app.selectedPlaylistId))
-    app.render(false)
+    app.render()
   }
 
   static onEditMetadata(event, target) {
     const path = MusicLibraryApp._pathFromActionTarget(target)
-    if (path) openMetadataEditor(path, () => this.render(false))
+    if (path) openMetadataEditor(path, () => this.render(), this)
   }
 
   static _pathFromActionTarget(target) {
@@ -1392,7 +1388,7 @@ export class MusicLibraryApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!path || !this.selectedPlaylistId) return
     await playlistStore.removeTrackFromPlaylist(this.selectedPlaylistId, path)
     await syncModulePlaylistToFoundry(playlistStore.getPlaylistById(this.selectedPlaylistId))
-    this.render(false)
+    this.render()
   }
 
   static onTrackScroll() {

@@ -103,6 +103,7 @@
       "Tags": "Теги",
       "EditMetadata": "Редагувати метадані",
       "AddToPlaylist": "Додати до плейлиста",
+      "AddToNamedPlaylist": "Додати до: {name}",
       "PlayPreview": "Попередній перегляд",
       "StopPreview": "Зупинити прев’ю",
       "PreviewPlaying": "Прев’ю: {track}",

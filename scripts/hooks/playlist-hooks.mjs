@@ -3,8 +3,8 @@ import { MODULE_ID, SETTING_KEYS } from '../constants.mjs'
 
 export function registerPlaylistHooks() {
   const refreshWidget = foundry.utils.debounce(() => {
-    const widget = foundry.applications.instances?.get('fml-gm-widget')
-    if (widget?.rendered) widget.render(false)
+    const widget = foundry.applications.instances.get('fml-gm-widget')
+    if (widget?.rendered) widget.render()
   }, 200)
 
   Hooks.on('updatePlaylist', (doc, changes) => {

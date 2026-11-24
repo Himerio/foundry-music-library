@@ -90,7 +90,7 @@ export function isMissingMetadata(track) {
 export async function browseMusicFiles() {
   const root = getMusicRoot()
   const target = root.endsWith('/') ? root : `${root}/`
-  const result = await foundry.applications.apps.FilePicker.browse('data', target, {
+  const result = await foundry.applications.apps.FilePicker.implementation.browse('data', target, {
     extensions: ['.mp3'],
     wildcard: false
   })

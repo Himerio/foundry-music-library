@@ -7,7 +7,7 @@
 }
 
 .application.fml-gm-widget.fml-gm-widget--compact {
-  transition: opacity var(--fml-compact-fade-speed, 500ms) ease;
+  transition: opacity var(--ui-fade-duration, 500ms) ease;
   opacity: 1;
   background: var(--background, var(--color-bg-primary)) !important;
   border: 1px solid var(--fml-border-divider);
@@ -17,7 +17,7 @@
 }
 
 .application.fml-gm-widget.fml-gm-widget--compact.fml-gm-widget--idle:not(.fml-gm-widget--hover) {
-  opacity: var(--fml-compact-fade-opacity, 0.5);
+  opacity: var(--ui-fade-opacity, 0.5);
 }
 
 .application.fml-gm-widget.fml-gm-widget--compact .window-content {

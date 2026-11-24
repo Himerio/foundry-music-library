@@ -6,6 +6,7 @@ import {
   getTrackTags,
   getTrackTitle
 } from '../services/track-display.mjs'
+import { dialogRenderOptions } from '../utils/dialogs.mjs'
 
 const { DialogV2 } = foundry.applications.api
 
@@ -91,8 +92,9 @@ async function submitBulkForm(root, apply, tagsMode) {
 /**
  * @param {string[]} paths
  * @param {() => void} [onSaved]
+ * @param {foundry.applications.api.ApplicationV2} [parent]
  */
-export async function openBulkMetadataEditor(paths, onSaved) {
+export async function openBulkMetadataEditor(paths, onSaved, parent = null) {
   const unique = [...new Set(paths)].filter(Boolean)
   if (!unique.length) return
 
@@ -140,57 +142,28 @@ export async function openBulkMetadataEditor(paths, onSaved) {
     }
   }
 
-  if (DialogV2?.wait) {
-    await DialogV2.wait({
-      window: {
-        title: game.i18n.localize('FML.Bulk.Title'),
-        icon: 'fa-solid fa-pen-to-square'
-      },
-      classes: ['fml-bulk-metadata-dialog'],
-      position: { width: 1020 },
-      content,
-      buttons: [
-        {
-          action: 'save',
-          label: game.i18n.localize('FML.Common.Save'),
-          icon: 'fa-solid fa-save',
-          default: true,
-          callback: submit
-        },
-        {
-          action: 'cancel',
-          label: game.i18n.localize('FML.Common.Cancel'),
-          icon: 'fa-solid fa-xmark'
-        }
-      ]
-    })
-    return
-  }
-
-  await new Promise((resolve) => {
-    new Dialog({
+  await DialogV2.wait({
+    window: {
       title: game.i18n.localize('FML.Bulk.Title'),
-      content,
-      buttons: {
-        save: {
-          label: game.i18n.localize('FML.Common.Save'),
-          callback: async (html) => {
-            const form = html[0]?.querySelector('form')
-            const root = html[0]?.querySelector('.fml-bulk-metadata-editor')
-            if (!form || !root) {
-              resolve()
-              return
-            }
-            const apply = readApplyFlags(form)
-            const tagsMode = form.elements.tagsMode?.value?.toString() ?? 'replace'
-            const changed = await submitBulkForm(root, apply, tagsMode)
-            if (changed) onSaved?.()
-            resolve()
-          }
-        },
-        cancel: { label: game.i18n.localize('FML.Common.Cancel'), callback: () => resolve() }
+      icon: 'fa-solid fa-pen-to-square'
+    },
+    classes: ['fml-bulk-metadata-dialog'],
+    position: { width: 1020 },
+    content,
+    renderOptions: dialogRenderOptions(parent),
+    buttons: [
+      {
+        action: 'save',
+        label: game.i18n.localize('FML.Common.Save'),
+        icon: 'fa-solid fa-save',
+        default: true,
+        callback: submit
       },
-      default: 'save'
-    }).render(true)
+      {
+        action: 'cancel',
+        label: game.i18n.localize('FML.Common.Cancel'),
+        icon: 'fa-solid fa-xmark'
+      }
+    ]
   })
 }

@@ -29,10 +29,10 @@ const COMPACT_IDLE_MS = 2000
 const PROGRESS_TICK_MS = 250
 
 export async function refreshGmPlaybackWidget() {
-  const widget = foundry.applications.instances?.get('fml-gm-widget')
+  const widget = foundry.applications.instances.get('fml-gm-widget')
   if (!widget?.rendered) return
   await widget._ensureActivePlaylistSetting()
-  widget.render(false)
+  widget.render()
 }
 
 export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) {
@@ -46,7 +46,44 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
       frame: true,
       positioned: true
     },
-    position: { width: WIDGET_WIDTH_FULL }
+    position: { width: WIDGET_WIDTH_FULL },
+    actions: {
+      closeWidget: GmPlaybackWidget.#onCloseWidget,
+      prev: GmPlaybackWidget.#onPrevAction,
+      next: GmPlaybackWidget.#onNextAction,
+      togglePlay: GmPlaybackWidget.#onTogglePlayAction,
+      toggleMode: GmPlaybackWidget.#onToggleModeAction,
+      toggleCompact: GmPlaybackWidget.#onToggleCompactAction,
+      playTrack: GmPlaybackWidget.#onPlayTrackAction
+    }
+  }
+
+  static #onCloseWidget() {
+    this.close()
+  }
+
+  static #onPrevAction() {
+    return this._onPrev()
+  }
+
+  static #onNextAction() {
+    return this._onNext()
+  }
+
+  static #onTogglePlayAction() {
+    return this._onTogglePlay()
+  }
+
+  static #onToggleModeAction() {
+    return this._onToggleMode()
+  }
+
+  static #onToggleCompactAction() {
+    return this._onToggleCompact()
+  }
+
+  static #onPlayTrackAction(_event, target) {
+    return this._onPlayTrack(target)
   }
 
   static PARTS = {
@@ -57,9 +94,9 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static open() {
     if (!canUseGmWidget()) return null
-    const existing = foundry.applications.instances?.get('fml-gm-widget')
+    const existing = foundry.applications.instances.get('fml-gm-widget')
     if (existing) {
-      existing._ensureActivePlaylistSetting().then(() => existing.render(false))
+      existing._ensureActivePlaylistSetting().then(() => existing.render())
       return existing
     }
     const prefs = game.settings.get(MODULE_ID, SETTING_KEYS.WIDGET_UI) ?? {}
@@ -70,7 +107,7 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     const position = { width }
     if (Number.isFinite(prefs.top)) position.top = prefs.top
     if (Number.isFinite(prefs.left)) position.left = prefs.left
-    app.render(true, { position })
+    app.render({ force: true, position })
     return app
   }
 
@@ -215,16 +252,9 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     }
   }
 
-  _configureRenderOptions(options) {
-    super._configureRenderOptions(options)
-    const compact = Boolean(game.settings.get(MODULE_ID, SETTING_KEYS.WIDGET_UI)?.compact)
-    options.window = foundry.utils.mergeObject(options.window ?? {}, { frame: !compact })
-  }
-
   async _onRender(context, options) {
     await super._onRender(context, options)
     const compact = Boolean(context.compact)
-    this._widgetFramed = !compact
     this.element?.classList.toggle('fml-gm-widget--compact', compact)
     this._syncCompactChrome(compact)
     if (!compact) {
@@ -273,14 +303,6 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     this._trackMarqueeObserver.observe(list)
   }
 
-  _getUiFadeConfig() {
-    const fade = CONFIG?.ui?.fade ?? {}
-    return {
-      opacity: Number.isFinite(fade.opacity) ? fade.opacity : 0.5,
-      speed: Number.isFinite(fade.speed) ? fade.speed : 500
-    }
-  }
-
   _syncApplicationTheme() {
     const el = this.element
     if (!el) return
@@ -298,9 +320,7 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
       this._clearCompactIdleFade()
       return
     }
-    const { opacity, speed } = this._getUiFadeConfig()
-    this.element.style.setProperty('--fml-compact-fade-opacity', String(opacity))
-    this.element.style.setProperty('--fml-compact-fade-speed', `${speed}ms`)
+    // Fade opacity/speed come from core UI settings via --ui-fade-* CSS variables.
     if (!this.element.classList.contains('fml-gm-widget--hover')) {
       this._scheduleCompactIdleFade()
     }
@@ -354,38 +374,6 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     if (this._widgetEventsBound) return
     this._widgetEventsBound = true
 
-    this.element.addEventListener('click', (event) => {
-      const button = event.target.closest('.fml-widget button[data-action]')
-      if (!button) return
-      event.preventDefault()
-      const { action } = button.dataset
-      switch (action) {
-        case 'closeWidget':
-          this.close()
-          break
-        case 'prev':
-          this._onPrev()
-          break
-        case 'next':
-          this._onNext()
-          break
-        case 'togglePlay':
-          this._onTogglePlay()
-          break
-        case 'toggleMode':
-          this._onToggleMode()
-          break
-        case 'toggleCompact':
-          this._onToggleCompact()
-          break
-        case 'playTrack':
-          this._onPlayTrack(button)
-          break
-        default:
-          break
-      }
-    })
-
     this.element.addEventListener('change', (event) => {
       const el = event.target
       if (el.matches('.fml-widget select[name="playlistId"]')) {
@@ -406,20 +394,21 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
         top: this.position?.top ?? 0
       }
       const onMove = (e) => {
-        if (typeof this.setPosition !== 'function') return
         this.setPosition({
           ...this.position,
           left: start.left + (e.clientX - start.x),
           top: start.top + (e.clientY - start.y)
         })
       }
+      // The widget may live in a detached browser window, so listen on its own window.
+      const view = this.element.ownerDocument.defaultView
       const onUp = () => {
-        window.removeEventListener('pointermove', onMove)
-        window.removeEventListener('pointerup', onUp)
+        view.removeEventListener('pointermove', onMove)
+        view.removeEventListener('pointerup', onUp)
         this._schedulePersistWidgetPosition()
       }
-      window.addEventListener('pointermove', onMove)
-      window.addEventListener('pointerup', onUp)
+      view.addEventListener('pointermove', onMove)
+      view.addEventListener('pointerup', onUp)
     })
 
     this.element.addEventListener('input', (event) => {
@@ -505,7 +494,7 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!id) return
     await stopAllModulePlaylists()
     await game.settings.set(MODULE_ID, SETTING_KEYS.ACTIVE_MODULE_PLAYLIST_ID, id)
-    await this.render(false)
+    await this.render()
   }
 
   async _onPrev() {
@@ -516,7 +505,7 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     }
     const current = this._getPlayingSound(pl)?.id
     await pl.playNext(current, { direction: -1 })
-    await this.render(false)
+    await this.render()
   }
 
   async _onNext() {
@@ -527,7 +516,7 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     }
     const current = this._getPlayingSound(pl)?.id
     await pl.playNext(current, { direction: 1 })
-    await this.render(false)
+    await this.render()
   }
 
   async _onTogglePlay() {
@@ -558,7 +547,7 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
         return
       }
     }
-    await this.render(false)
+    await this.render()
   }
 
   async _onPlayTrack(button) {
@@ -582,7 +571,7 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
       ui.notifications.error(game.i18n.localize('FML.Common.Error'))
       return
     }
-    await this.render(false)
+    await this.render()
   }
 
   async _onToggleMode() {
@@ -593,7 +582,7 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     }
     const nextMode = getNextPlaylistMode(pl)
     await pl.update({ mode: nextMode })
-    await this.render(false)
+    await this.render()
   }
 
   _warnNoPlaybackPlaylist() {
@@ -619,7 +608,7 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
     const w = Number(this.position?.width) || 0
     if (w >= WIDGET_WIDTH_FULL_MIN) return
     const position = { ...this.position, width: WIDGET_WIDTH_FULL }
-    if (typeof this.setPosition === 'function') this.setPosition(position)
+    this.setPosition(position)
     const prefs = game.settings.get(MODULE_ID, SETTING_KEYS.WIDGET_UI) ?? {}
     if (!prefs.compact && (Number(prefs.width) || 0) < WIDGET_WIDTH_FULL_MIN) {
       game.settings.set(MODULE_ID, SETTING_KEYS.WIDGET_UI, { ...prefs, width: WIDGET_WIDTH_FULL }).catch(
@@ -668,16 +657,8 @@ export class GmPlaybackWidget extends HandlebarsApplicationMixin(ApplicationV2) 
       width,
       height: this.position?.height
     }
-    const frame = !compact
-    const frameChanged = this._widgetFramed !== frame
-    this._widgetFramed = frame
-    await this.render(frameChanged, {
-      position,
-      window: { frame }
-    })
-    if (typeof this.setPosition === 'function') {
-      await this.setPosition(position)
-    }
+    await this.render({ position })
+    this.setPosition(position)
     this.element?.classList.toggle('fml-gm-widget--compact', compact)
   }
 

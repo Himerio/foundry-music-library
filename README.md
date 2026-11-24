@@ -1,10 +1,10 @@
 # Foundry Music Library
 
-System-agnostic Foundry VTT v13 module: a modern music library and playlist UI on top of native Foundry audio and playlists.
+System-agnostic Foundry VTT v14 module: a modern music library and playlist UI on top of native Foundry audio and playlists.
 
 ## Requirements
 
-- Foundry VTT **v13**
+- Foundry VTT **v14** (v13 is no longer supported; use release 0.4.1 for v13 worlds)
 - MP3 files only, in a **single flat folder** (no subfolders), e.g. `Data/music/*.mp3`
 
 ## Installation
@@ -76,7 +76,7 @@ Metadata is read from ID3 tags in the browser (no changes to files on disk). Ove
 
 ### Theming
 
-UI styles use shared tokens in `styles/fml-tokens.css` (spacing, borders, surfaces) mapped to Foundry v13 CSS variables (`--color-bg-*`, `--color-text-*`, `--font-size-*`) for consistent light/dark appearance.
+UI styles use shared tokens in `styles/fml-tokens.css` (spacing, borders, surfaces) mapped to Foundry core CSS variables (`--color-bg-*`, `--color-text-*`, `--font-size-*`) for consistent light/dark appearance.
 
 ## Version
 

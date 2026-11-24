@@ -4,7 +4,7 @@ import { MusicLibraryApp } from '../apps/music-library-app.mjs'
 export function registerSceneControls() {
   Hooks.on('getSceneControlButtons', (controls) => {
     if (!canManageMusicLibrary()) return
-    // Foundry v13+: controls is Record<name, SceneControl>, not an array
+    // controls is Record<name, SceneControl> (v13+ shape, unchanged in v14)
     const tokens = controls.tokens
     if (!tokens?.tools) return
     tokens.tools.musicLibrary = {

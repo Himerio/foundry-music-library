@@ -20,12 +20,7 @@ export function toFoundryMediaPath(trackPath) {
 }
 
 export function getTrackUrl(trackPath) {
-  const path = toFoundryMediaPath(trackPath)
-  if (typeof foundry.utils.getRoute === 'function') {
-    return foundry.utils.getRoute(path)
-  }
-  const base = window.location.origin.replace(/\/$/, '')
-  return `${base}/${path}`
+  return foundry.utils.getRoute(toFoundryMediaPath(trackPath))
 }
 
 export function isMp3Filename(name) {

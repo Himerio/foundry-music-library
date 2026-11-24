@@ -8,12 +8,15 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const MODULE_NAME = basename(ROOT)
 const DIST = join(ROOT, 'dist')
 const EXCLUDE_TOP = new Set(['node_modules', '.git', 'dist', 'spec.md', 'package-lock.json'])
+// Release tooling is not part of the installed module.
+const EXCLUDE_FILES = new Set(['scripts/build-release.mjs', 'scripts/release.mjs'])
 
 function shouldCopy(absPath) {
   const rel = relative(ROOT, absPath).replace(/\\/g, '/')
   if (!rel) return true
   const top = rel.split('/')[0]
   if (EXCLUDE_TOP.has(top)) return false
+  if (EXCLUDE_FILES.has(rel)) return false
   return true
 }
 

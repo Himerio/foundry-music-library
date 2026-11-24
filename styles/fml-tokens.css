@@ -1,5 +1,5 @@
 /**
- * Foundry Music Library — shared design tokens (v13).
+ * Foundry Music Library — shared design tokens (v14).
  * Loaded before component styles. Surfaces use color-mix on --color-text-primary
  * so light/dark themes follow Foundry without duplicate body.theme-light rules.
  */

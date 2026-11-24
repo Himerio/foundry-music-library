@@ -27,8 +27,7 @@ export function getUploadDirectory() {
  * @param {string} targetDir
  */
 async function ensureUploadDirectory(targetDir) {
-  const FilePicker = foundry.applications.apps.FilePicker
-  if (!FilePicker?.browse) return
+  const FilePicker = foundry.applications.apps.FilePicker.implementation
 
   try {
     await FilePicker.browse('data', targetDir, { wildcard: false })
@@ -38,7 +37,7 @@ async function ensureUploadDirectory(targetDir) {
   }
 
   const dirPath = targetDir.replace(/\/$/, '')
-  if (!dirPath || !FilePicker.createDirectory) return
+  if (!dirPath) return
 
   const parts = dirPath.split('/').filter(Boolean)
   let built = ''
@@ -66,32 +65,12 @@ function isUploadResponseOk(response) {
  * @param {File} file
  */
 async function postUploadFile(targetDir, file) {
-  const FilePicker = foundry.applications.apps.FilePicker
-
-  if (FilePicker?.upload) {
-    const response = await FilePicker.upload('data', targetDir, file, {}, { notify: false })
-    if (!isUploadResponseOk(response)) {
-      throw new Error('FilePicker.upload returned no target path')
-    }
-    return response
+  const FilePicker = foundry.applications.apps.FilePicker.implementation
+  const response = await FilePicker.upload('data', targetDir, file, {}, { notify: false })
+  if (!isUploadResponseOk(response)) {
+    throw new Error('FilePicker.upload returned no target path')
   }
-
-  const formData = new FormData()
-  formData.append('source', 'data')
-  formData.append('path', targetDir)
-  formData.append('file', file, file.name)
-  const response = await fetch(FilePicker?.uploadURL ?? '/upload', {
-    method: 'POST',
-    body: formData
-  })
-  if (!response.ok) {
-    throw new Error(`Upload failed (${response.status})`)
-  }
-  const json = await response.json().catch(() => ({}))
-  if (!isUploadResponseOk(json)) {
-    throw new Error('Upload endpoint returned no target path')
-  }
-  return json
+  return response
 }
 
 /**

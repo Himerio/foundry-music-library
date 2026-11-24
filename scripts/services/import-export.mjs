@@ -18,13 +18,11 @@ export function buildExportBundle() {
 
 export function downloadExportJson() {
   const bundle = buildExportBundle()
-  const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `music-library-export-${new Date().toISOString().slice(0, 10)}.json`
-  a.click()
-  URL.revokeObjectURL(url)
+  foundry.utils.saveDataToFile(
+    JSON.stringify(bundle, null, 2),
+    'application/json',
+    `music-library-export-${new Date().toISOString().slice(0, 10)}.json`
+  )
 }
 
 function validatePathsAgainstIndex(tracks) {
@@ -88,16 +86,18 @@ export async function importBundle(bundle, mode) {
 }
 
 export async function pickAndImport(mode) {
-  const input = document.createElement('input')
+  // Open the file chooser in whichever window the user is working in (v14 detached windows).
+  const doc = foundry.applications.detached.focused?.document ?? document
+  const input = doc.createElement('input')
   input.type = 'file'
   input.accept = 'application/json,.json'
   input.style.display = 'none'
-  document.body.appendChild(input)
+  doc.body.appendChild(input)
 
   return new Promise((resolve, reject) => {
     input.addEventListener('change', async () => {
       const file = input.files?.[0]
-      document.body.removeChild(input)
+      input.remove()
       if (!file) {
         resolve(null)
         return

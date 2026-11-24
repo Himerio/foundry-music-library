@@ -52,8 +52,8 @@ export class SettingsConfigApp extends HandlebarsApplicationMixin(ApplicationV2)
 
   static async onBrowseRoot() {
     const app = this
-    const FP = foundry.applications.apps.FilePicker
-    const picker = new FP({
+    const FilePicker = foundry.applications.apps.FilePicker.implementation
+    const picker = new FilePicker({
       type: 'folder',
       current: game.settings.get(MODULE_ID, SETTING_KEYS.MUSIC_ROOT) || 'music',
       bucket: 'data',
@@ -64,7 +64,7 @@ export class SettingsConfigApp extends HandlebarsApplicationMixin(ApplicationV2)
           await game.settings.set(MODULE_ID, SETTING_KEYS.MUSIC_ROOT, clean)
           const input = app.element?.querySelector('[name="musicRoot"]')
           if (input) input.value = clean
-          await app.render(false)
+          await app.render()
         } finally {
           app._suppressFormChange = false
         }

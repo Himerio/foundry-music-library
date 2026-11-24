@@ -11,9 +11,6 @@ import * as playlistStore from './services/playlist-store.mjs'
 
 Hooks.once('init', () => {
   console.log(`${MODULE_ID} | init`)
-
-  Handlebars.registerHelper('eq', (a, b) => a === b)
-
   registerSettings()
   registerSceneControls()
   registerPlaylistHooks()
@@ -25,7 +22,7 @@ Hooks.once('ready', async () => {
     if (pls.length) await syncAllModulePlaylists()
   }
 
-  game.musicLibrary = {
+  const api = {
     openLibrary: () => MusicLibraryApp.open(),
     openWidget: () => GmPlaybackWidget.open(),
     rescan: (opts) => scanMusicLibrary(opts ?? { forceMetadata: true }),
@@ -34,5 +31,8 @@ Hooks.once('ready', async () => {
     syncPlaylists: () => syncAllModulePlaylists(),
     _preview: null
   }
+  // Standard package API location, plus the legacy global used by existing macros.
+  game.modules.get(MODULE_ID).api = api
+  game.musicLibrary = api
   console.log(`${MODULE_ID} | ready`)
 })

@@ -103,6 +103,7 @@
       "Tags": "Tags",
       "EditMetadata": "Edit Metadata",
       "AddToPlaylist": "Add to Playlist",
+      "AddToNamedPlaylist": "Add to: {name}",
       "PlayPreview": "Play Preview",
       "StopPreview": "Stop Preview",
       "PreviewPlaying": "Preview: {track}",

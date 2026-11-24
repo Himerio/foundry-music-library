@@ -10,8 +10,6 @@ module.exports = {
     ChatMessage: 'readonly',
     CONFIG: 'readonly',
     CONST: 'readonly',
-    Dialog: 'readonly',
-    FormDataExtended: 'readonly',
     Playlist: 'readonly',
     foundry: 'readonly',
     game: 'readonly',

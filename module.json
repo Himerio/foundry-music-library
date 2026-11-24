@@ -2,7 +2,7 @@
   "id": "foundry-music-library",
   "title": "Foundry Music Library",
   "description": "Modern music library and playlist management UI on top of Foundry native audio.",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "authors": [
     {
       "name": "Himerio",
@@ -15,8 +15,8 @@
   "readme": "https://github.com/Himerio/foundry-music-library/blob/main/README.md",
   "bugs": "https://github.com/Himerio/foundry-music-library/issues",
   "compatibility": {
-    "minimum": "13",
-    "verified": "13"
+    "minimum": "14",
+    "verified": "14.370"
   },
   "esmodules": [
     "scripts/module.mjs"

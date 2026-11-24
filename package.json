@@ -1,11 +1,12 @@
 {
   "name": "foundry-music-library",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "private": true,
-  "description": "Music library UI layer for Foundry VTT v13.",
+  "description": "Music library UI layer for Foundry VTT v14.",
   "scripts": {
     "lint": "eslint . --ext .js,.mjs",
-    "release:zip": "node scripts/build-release.mjs"
+    "release:zip": "node scripts/build-release.mjs",
+    "release": "node scripts/release.mjs"
   },
   "devDependencies": {
     "eslint": "^8.57.1",

@@ -8,7 +8,25 @@ Users install via **Add-on Modules → Install Module** with this manifest URL:
 https://github.com/Himerio/foundry-music-library/releases/latest/download/module.json
 ```
 
-## Build release assets
+## Release with one command (recommended)
+
+Prerequisites (once): `git`, `node`, `zip`, GitHub CLI logged in (`gh auth login`).
+
+1. Bump `"version"` in **both** `module.json` and `package.json`.
+2. Add a `## vX.Y.Z release notes` section to this file (it becomes the GitHub release description).
+3. Commit everything on `main`.
+4. Run:
+
+```bash
+npm run release -- --dry-run   # optional: checks + build only, publishes nothing
+npm run release
+```
+
+The script checks versions, branch (`main`), clean working tree and that the release does not exist yet,
+builds `dist/`, pushes `main` (over HTTPS with the `gh` token, so a passphrase-protected SSH key is fine),
+and creates the GitHub release `vX.Y.Z` with both assets attached.
+
+## Build release assets manually
 
 From the module root:
 
@@ -25,7 +43,7 @@ This creates:
 
 The zip contains a top-level `foundry-music-library/` folder (required by Foundry).
 
-## Create a GitHub Release
+## Create a GitHub Release manually
 
 1. Bump `"version"` in `module.json` and commit.
 2. Run `npm run release:zip`.
@@ -40,6 +58,19 @@ Foundry uses `releases/latest/download/…` so the newest release becomes the de
 
 - **Sidebar:** artist/tag filter chips capped at ~200px with vertical scroll (header stays visible)
 - **Bulk toolbar:** add all selected tracks to the current playlist (library sort order; skips duplicates)
+
+## v0.5.0 release notes
+
+**Requires Foundry VTT v14 (verified on 14.370). v13 is no longer supported — v13 worlds should stay on 0.4.1.**
+
+- **v14 migration:** context menu entries use the v14 `label` / `onClick` / icon-class format (no deprecation warnings)
+- **Track context menu:** "Add to playlist" now lists each playlist directly ("Add to: …"); the old nested submenu was never rendered by Foundry
+- **Detached windows:** the library and player work when popped out with v14's *Detach* button; metadata, bulk-edit, playlist-name, import and delete dialogs open in the same window
+- **GM Player:** buttons use ApplicationV2 actions; compact idle fade now follows the core *UI fade* settings (previously always 50% / 500 ms)
+- **Import:** mode is read from the dialog form itself (no global DOM lookup)
+- Uses `FilePicker.implementation` (respects storage modules that replace the file picker), `game.clipboard`, `foundry.utils.saveDataToFile`
+- Removed v1 `Dialog` fallbacks and other pre-v13 compatibility branches
+- API is also exposed as `game.modules.get('foundry-music-library').api` (`game.musicLibrary` still works)
 
 ## v0.4.0 release notes
 

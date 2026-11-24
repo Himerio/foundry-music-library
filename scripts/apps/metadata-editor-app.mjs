@@ -6,93 +6,59 @@ import {
   getTrackTags,
   getTrackTitle
 } from '../services/track-display.mjs'
+import { dialogRenderOptions, readDialogForm } from '../utils/dialogs.mjs'
 
 const { DialogV2 } = foundry.applications.api
 
 /**
  * @param {string} path
  * @param {() => void} [onSaved]
+ * @param {foundry.applications.api.ApplicationV2} [parent]
  */
-export async function openMetadataEditor(path, onSaved) {
+export async function openMetadataEditor(path, onSaved, parent = null) {
   const track = getTrack(path)
   if (!track) return
 
-  const tagsText = getTrackTags(track).join(', ')
   const content = await foundry.applications.handlebars.renderTemplate(
     `${MODULE_PATH}/templates/metadata-editor.hbs`,
     {
       title: getTrackTitle(track),
       artist: getTrackArtist(track),
       album: getTrackAlbum(track),
-      tagsText
+      tagsText: getTrackTags(track).join(', ')
     }
   )
 
   const submit = async (_event, button) => {
-    const form = button.form
-    const root = form?.querySelector('.fml-metadata-editor')
-    if (!form || !root) return
-    const fd = new FormDataExtended(form) // DialogV2 wrapper form
-    const tagsRaw = fd.get('tags')?.toString() ?? ''
-    const tags = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean)
+    const data = readDialogForm(button.form)
+    const text = (key) => String(data[key] ?? '').trim() || undefined
+    const tags = String(data.tags ?? '').split(',').map((t) => t.trim()).filter(Boolean)
     await updateTrackOverride(path, {
-      title: fd.get('title')?.toString()?.trim() || undefined,
-      artist: fd.get('artist')?.toString()?.trim() || undefined,
-      album: fd.get('album')?.toString()?.trim() || undefined,
+      title: text('title'),
+      artist: text('artist'),
+      album: text('album'),
       tags
     })
     onSaved?.()
   }
 
-  if (DialogV2?.wait) {
-    await DialogV2.wait({
-      window: { title: game.i18n.localize('FML.Metadata.Title') },
-      content,
-      buttons: [
-        {
-          action: 'save',
-          label: game.i18n.localize('FML.Common.Save'),
-          icon: 'fa-solid fa-save',
-          default: true,
-          callback: submit
-        },
-        {
-          action: 'cancel',
-          label: game.i18n.localize('FML.Common.Cancel'),
-          icon: 'fa-solid fa-xmark'
-        }
-      ]
-    })
-    return
-  }
-
-  await new Promise((resolve) => {
-    new Dialog({
-      title: game.i18n.localize('FML.Metadata.Title'),
-      content,
-      buttons: {
-        save: {
-          label: game.i18n.localize('FML.Common.Save'),
-          callback: async (html) => {
-            const root = html[0]?.querySelector('.fml-metadata-editor')
-            const form = root?.closest('form') ?? root
-            if (!form) return
-            const fd = new FormDataExtended(form)
-            const tagsRaw = fd.get('tags')?.toString() ?? ''
-            const tags = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean)
-            await updateTrackOverride(path, {
-              title: fd.get('title')?.toString()?.trim() || undefined,
-              artist: fd.get('artist')?.toString()?.trim() || undefined,
-              album: fd.get('album')?.toString()?.trim() || undefined,
-              tags
-            })
-            onSaved?.()
-            resolve()
-          }
-        },
-        cancel: { label: game.i18n.localize('FML.Common.Cancel'), callback: () => resolve() }
+  await DialogV2.wait({
+    window: { title: game.i18n.localize('FML.Metadata.Title') },
+    content,
+    renderOptions: dialogRenderOptions(parent),
+    buttons: [
+      {
+        action: 'save',
+        label: game.i18n.localize('FML.Common.Save'),
+        icon: 'fa-solid fa-save',
+        default: true,
+        callback: submit
       },
-      default: 'save'
-    }).render(true)
+      {
+        action: 'cancel',
+        label: game.i18n.localize('FML.Common.Cancel'),
+        icon: 'fa-solid fa-xmark'
+      }
+    ]
   })
 }
